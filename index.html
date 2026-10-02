@@ -1,5 +1,43 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f5b0a7"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon.svg"><title>AI作業室</title><style>
+/* image-2 inspired visual treatment */
+body{background:#f8efe3}
+.room{min-height:760px;background:
+radial-gradient(circle at 10% 20%,rgba(255,255,255,.7) 0 8%,transparent 22%),
+radial-gradient(circle at 80% 12%,rgba(255,242,190,.55) 0 9%,transparent 24%),
+linear-gradient(180deg,#fff8ec 0%,#f5e2cf 72%,#ead1c2 100%);
+box-shadow:inset 0 0 80px rgba(255,255,255,.35),0 12px 35px rgba(90,62,42,.12)}
+.room:after{content:"";position:absolute;inset:0;pointer-events:none;background:
+radial-gradient(circle at 18% 28%,#7fba70 0 3px,transparent 4px),
+radial-gradient(circle at 21% 24%,#9dcc7e 0 5px,transparent 6px),
+radial-gradient(circle at 75% 25%,#83bd75 0 4px,transparent 5px),
+radial-gradient(circle at 78% 30%,#a4ce87 0 3px,transparent 4px),
+radial-gradient(circle at 42% 84%,#f2a6a5 0 4px,transparent 5px),
+radial-gradient(circle at 46% 87%,#f4c27b 0 3px,transparent 4px);
+opacity:.75}
+.agent{width:235px;height:185px;transition:filter .25s,transform .25s}
+.agent:hover{filter:drop-shadow(0 10px 12px rgba(82,56,38,.16));transform:translateY(-4px)}
+.avatar{left:86px;top:37px}.face{width:66px;height:66px;font-size:36px;box-shadow:0 7px 16px rgba(72,51,38,.18);background:linear-gradient(145deg,#fff2df,#f0d4bf)}
+.body{width:70px;height:45px;border-radius:24px 24px 10px 10px}
+.bubble{width:235px;top:-52px;border:2px solid rgba(231,213,198,.9);box-shadow:0 8px 18px rgba(76,51,35,.13);font-size:11px;background:rgba(255,255,252,.96)}
+.progress{height:9px;bottom:-17px;box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
+.label,.status{font-size:10px;box-shadow:0 4px 9px rgba(76,51,35,.08)}
+.working .avatar{animation:breathe .7s ease-in-out infinite}
+.working .body{animation:typing .48s ease-in-out infinite alternate}
+.thinking .avatar{animation:think .9s ease-in-out infinite}
+.thinking .bubble{animation:thought 1.2s ease-in-out infinite}
+.done .avatar{animation:donePop .5s ease-out}
+.walker{width:46px;height:46px;border-radius:50%;font-size:24px;background:#fffdf8;border:3px solid #f0b5a5;animation:paperBob .35s ease-in-out infinite alternate}
+.handoff{font-weight:800;background:#fffaf2;border:2px solid #efc6b8;font-size:10px}
+@keyframes typing{to{transform:translateY(2px) rotate(-2deg)}}
+@keyframes thought{50%{transform:translateY(-3px) scale(1.015)}}
+@keyframes donePop{0%{transform:scale(.8)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes paperBob{to{margin-top:-5px}}
+@keyframes sparkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.scene-bg{filter:saturate(1.08) contrast(.97)}
+.manager{font-size:12px;padding:9px 15px;border:2px solid #edd8c7}
+.pipeline .stage{box-shadow:0 5px 12px rgba(76,51,35,.07);background:#fffefa}
+</style><style>
 :root{--ink:#3d3d46;--muted:#7f8490;--paper:#fffdf8;--line:#eadfd5;--blue:#5aa9dc;--green:#63c99c}
 *{box-sizing:border-box}body{margin:0;background:#f6eee5;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
 header{position:sticky;top:0;z-index:30;background:#fffaf6f5;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:9px 12px}.head{max-width:1500px;margin:auto;display:flex;align-items:center;gap:10px}.paw{width:46px;height:46px;border-radius:15px;background:#f4a39a;display:grid;place-items:center;font-size:25px}.brand h1{font-size:20px;margin:0}.brand p{font-size:10px;color:var(--muted);margin:1px 0}.project{margin-left:auto;width:min(470px,42vw);background:#fff;border:1px solid var(--line);border-radius:14px;padding:7px 11px}.project small{color:var(--muted)}.project b{display:block;font-size:12px}.bar{height:7px;background:#eee8e0;border-radius:99px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;width:62%;background:var(--green);border-radius:99px}.head button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-weight:800;font-size:11px}.head .start{background:#f08e87;color:#fff;border-color:#f08e87}
