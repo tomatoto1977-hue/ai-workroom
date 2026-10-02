@@ -142,6 +142,21 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
        }
      });
      const manager=data.results.find(item=>item.role==='統括AI');
+     const roleMap={'市場調査AI':0,'企画AI':1,'文章化AI':2,'エビデンスAI':3,'編集AI':4};
+     data.results.forEach(item=>{
+       const i=roleMap[item.role];
+       if(i===undefined)return;
+       if(item.status==='completed'){
+         state.progress[i]=100;
+         state.phases[i]='done';
+         state.delivered[i]=false;
+         if(i<4){
+           state.delivered[i]=true;
+           state.phases[i+1]='waiting';
+           moveDocument(i,i+1,'API成果を受領して引き渡し');
+         }
+       }
+     });
      document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
      if(data.gate&&data.gate.passed){
        state.score=95;
