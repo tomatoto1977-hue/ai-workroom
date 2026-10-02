@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1334" viewBox="0 0 750 1334">
+  <defs>
+    <clipPath id="office"><rect x="0" y="500" width="750" height="430" rx="0"/></clipPath>
+    <clipPath id="dash"><rect x="0" y="930" width="750" height="300" rx="0"/></clipPath>
+    <filter id="soft"><feGaussianBlur stdDeviation="0.35"/></filter>
+  </defs>
+  <rect width="750" height="1334" fill="#efe2d5"/>
+  <!-- Full reference overview -->
+  <image href="./visual-reference.svg" x="0" y="0" width="750" height="500" preserveAspectRatio="none"/>
+  <!-- Enlarged office/staff section -->
+  <g clip-path="url(#office)">
+    <image href="./visual-reference.svg" x="-35" y="365" width="820" height="547" preserveAspectRatio="none"/>
+  </g>
+  <!-- Enlarged dashboard section -->
+  <g clip-path="url(#dash)">
+    <image href="./visual-reference.svg" x="-5" y="585" width="760" height="507" preserveAspectRatio="none"/>
+  </g>
+  <!-- Soft transition -->
+  <rect y="495" width="750" height="12" fill="#fffaf5" opacity=".82"/>
+  <rect y="923" width="750" height="12" fill="#fffaf5" opacity=".82"/>
+  <!-- Mobile instruction area -->
+  <rect x="24" y="1230" width="702" height="82" rx="20" fill="#fffdf9" stroke="#cda98b" stroke-width="3"/>
+  <text x="45" y="1254" font-family="-apple-system,BlinkMacSystemFont,'Yu Gothic',sans-serif" font-size="13" font-weight="700" fill="#6b5143">統括AIへの指示</text>
+  <rect x="185" y="1243" width="355" height="48" rx="24" fill="#fff" stroke="#d9c6b7" stroke-width="2"/>
+  <text x="208" y="1273" font-family="-apple-system,BlinkMacSystemFont,'Yu Gothic',sans-serif" font-size="12" fill="#9b887d">例：電気代を節約する動画を作って</text>
+  <rect x="555" y="1243" width="145" height="48" rx="24" fill="#8b6a57"/>
+  <text x="601" y="1273" font-family="-apple-system,BlinkMacSystemFont,'Yu Gothic',sans-serif" font-size="14" font-weight="800" fill="#fff">送信</text>
+</svg>
