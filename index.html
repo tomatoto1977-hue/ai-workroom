@@ -128,14 +128,34 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
  try{
    const r=await fetch(API_URL+'/api/orchestrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,project:'AI作業室',max_output_tokens:700})});
    const data=await r.json();
+   if(data.workflow){
+     data.workflow.forEach(w=>log(w.stage+'工程：'+w.roles.join('・')+' が担当'));
+   }
    if(data.mode==='openai'){
      log('統括AI：実AI処理が完了。各担当の成果を受領');
-     data.results.forEach(item=>{if(item.status==='completed'){const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);log(item.role+'：成果を次工程へ引き渡し'+(summary?'「'+summary+'」':''));}});
+     data.results.forEach(item=>{
+       if(item.status==='completed'){
+         const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);
+         log(item.role+'：成果を次工程へ引き渡し'+(summary?'「'+summary+'」':''));
+       } else if(item.status==='error'){
+         log(item.role+'：エラーを検知。改善待ち');
+       }
+     });
      const manager=data.results.find(item=>item.role==='統括AI');
      document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
-     state.score=Math.max(state.score,95);render();
+     if(data.gate&&data.gate.passed){
+       state.score=95;
+       log('統括AI：品質ゲート95点条件を確認');
+     }else{
+       state.score=Math.min(state.score,94);
+       log('統括AI：品質ゲート95点は未達。改善工程を継続');
+     }
+     render();
    }else{
-     log('AI API：未設定のため安全な画面シミュレーションを継続');
+     log('AI API：未設定。料金の発生しない安全なシミュレーションを継続');
+     document.getElementById('managerTask').textContent='シミュレーション完了：API接続後に実AI品質判定へ';
+     state.score=Math.min(94,Math.max(state.score,82));
+     render();
    }
  }catch(e){log('AI API：接続待ち。画面シミュレーションを継続');}
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
