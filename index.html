@@ -126,5 +126,5 @@ function send(){const x=document.getElementById('instruction');if(!x.value.trim(
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 render();start();
-if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{}); }</script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=19').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
 </body></html>
