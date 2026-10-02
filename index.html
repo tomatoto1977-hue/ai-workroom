@@ -60,7 +60,7 @@ const roles=[
 const positions=[
  {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
 ];
-let paused=false,timer=null,logs=[];
+let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false;
 const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
@@ -94,7 +94,7 @@ function moveDocument(from,to,label){
  log(roles[from][0]+' → '+roles[to][0]+'：'+label);
 }
 function tick(){
- if(paused)return;
+ if(paused || apiDriven)return;
  roles.forEach((r,i)=>{
    if(state.phases[i]==='waiting'){
      if(i===0 || state.delivered[i-1]) state.phases[i]='working';
@@ -116,6 +116,38 @@ function tick(){
  if(state.score>=95 && Math.random()<.03) log('統括AI：品質95点以上を確認。次工程へ進行');
  render();
 }
+async function playWorkflow(data){
+ apiDriven=true; workflowRunning=true;
+ if(timer){clearInterval(timer);timer=null;}
+ const groups=[
+   {stage:'調査',cards:[0],roles:['市場調査AI','競争戦略AI','情報収集AI','予算AI']},
+   {stage:'企画',cards:[1],roles:['企画AI']},
+   {stage:'制作',cards:[2,4],roles:['文章化AI','動画制作AI']},
+   {stage:'品質確認',cards:[3,4],roles:['エビデンスAI','編集AI']},
+   {stage:'実装',cards:[4],roles:['実装AI']},
+   {stage:'統括',cards:[],roles:['統括AI']}
+ ];
+ const results=data.results||[];
+ for(const g of groups){
+   if(paused){await new Promise(r=>setTimeout(r,500));continue;}
+   g.cards.forEach(i=>{state.phases[i]='working';state.progress[i]=Math.max(state.progress[i],20);});
+   log(g.stage+'工程：'+g.roles.join('・')+' が受領して作業開始');
+   render();
+   await new Promise(r=>setTimeout(r,900));
+   g.cards.forEach(i=>{state.progress[i]=100;state.phases[i]='done';});
+   const matching=results.filter(x=>g.roles.includes(x.role));
+   matching.forEach(x=>{if(x.status==='completed')log(x.role+'：成果を完了し次工程へ引き渡し');});
+   for(let j=0;j<g.cards.length-1;j++) moveDocument(g.cards[j],g.cards[j+1],g.stage+'工程の成果を引き渡し');
+   if(g.cards.length===2) state.phases[g.cards[1]]='waiting';
+   render();
+   await new Promise(r=>setTimeout(r,500));
+ }
+ workflowRunning=false; apiDriven=false;
+ state.score=data.gate?.passed?95:Math.min(state.score,94);
+ log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
+ render();
+ start();
+}
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
@@ -133,6 +165,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
    }
    if(data.mode==='openai'){
      log('統括AI：実AI処理が完了。各担当の成果を受領');
+     playWorkflow(data);
      data.results.forEach(item=>{
        if(item.status==='completed'){
          const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);
@@ -168,6 +201,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      render();
    }else{
      log('AI API：未設定。料金の発生しない安全なシミュレーションを継続');
+     playWorkflow(data);
      document.getElementById('managerTask').textContent='シミュレーション完了：API接続後に実AI品質判定へ';
      state.score=Math.min(94,Math.max(state.score,82));
      render();
