@@ -1,0 +1,10 @@
+{
+  "name":"AI作業室",
+  "short_name":"AI作業室",
+  "start_url":"./",
+  "display":"standalone",
+  "background_color":"#f5f7fb",
+  "theme_color":"#6d5dfc",
+  "lang":"ja",
+  "icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
