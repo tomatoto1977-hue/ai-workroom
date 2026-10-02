@@ -22,8 +22,8 @@
   @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
  </style>
 </defs>
-<rect width="1350" height="900" fill="url(#wall)"/>
-<rect y="665" width="1350" height="235" fill="url(#floor)"/>
+<rect width="1350" height="900" fill="url(#wall)"/><ellipse cx="675" cy="310" rx="520" ry="180" fill="#fff6df" opacity=".35" filter="url(#soft)"/>
+<rect y="665" width="1350" height="235" fill="url(#floor)"/><g opacity=".16" stroke="#6f4d3b" stroke-width="3"><path d="M0 735h1350M0 805h1350M0 875h1350"/></g>
 <path d="M0 665h1350" stroke="#8e6047" stroke-width="5" opacity=".25"/>
 <!-- window and daylight -->
 <rect x="410" y="105" width="530" height="330" rx="26" fill="#fff" stroke="#b78e72" stroke-width="9" filter="url(#shadow)"/>
@@ -53,7 +53,7 @@
 <g><path d="M1045 185v110" stroke="#9b755d" stroke-width="6"/><path d="M1010 185q35-40 70 0z" fill="#f6dcae" stroke="#a47d61" stroke-width="4"/><circle cx="1045" cy="198" r="12" fill="#ffe9ad"/></g>
 
 <!-- five AI coworkers -->
-<g class="person p1">
+<g class="person p1"><ellipse cx="270" cy="708" rx="110" ry="18" fill="#6f4e3d" opacity=".18"/>
  <circle cx="270" cy="505" r="61" fill="#f0c6b5" stroke="#5b4a43" stroke-width="5"/>
  <path d="M209 502q4-105 116-67 36 30 0 111-17-63-116-44z" fill="#6d4d43" stroke="#5b4a43" stroke-width="5"/>
  <path d="M237 493q12-12 25 0M280 493q12-12 25 0" fill="none" stroke="#5b4a43" stroke-width="4"/>
@@ -63,7 +63,7 @@
  <g class="typing" stroke="#e7b09f" stroke-width="13" stroke-linecap="round"><path d="M228 590l26 33M312 590l-26 33"/></g>
  <rect x="188" y="635" width="164" height="72" rx="15" fill="url(#wood)" stroke="#825b44" stroke-width="5"/><rect x="224" y="650" width="92" height="43" rx="7" fill="#dbe8e6" stroke="#656967" stroke-width="5"/>
 </g>
-<g class="person p2">
+<g class="person p2"><ellipse cx="475" cy="708" rx="110" ry="18" fill="#6f4e3d" opacity=".18"/>
  <circle cx="475" cy="505" r="61" fill="#efc0ae" stroke="#5b4a43" stroke-width="5"/>
  <path d="M414 502q7-105 118-65 38 32-1 110-25-62-114-44z" fill="#403837" stroke="#5b4a43" stroke-width="5"/>
  <path d="M442 493q12-12 25 0M485 493q12-12 25 0" fill="none" stroke="#5b4a43" stroke-width="4"/>
@@ -73,7 +73,7 @@
  <g class="typing t2" stroke="#e7a6b8" stroke-width="13" stroke-linecap="round"><path d="M433 590l26 33M517 590l-26 33"/></g>
  <rect x="393" y="635" width="164" height="72" rx="15" fill="url(#wood)" stroke="#825b44" stroke-width="5"/><rect x="429" y="650" width="92" height="43" rx="7" fill="#dbe8e6" stroke="#656967" stroke-width="5"/>
 </g>
-<g class="person p3">
+<g class="person p3"><ellipse cx="680" cy="708" rx="110" ry="18" fill="#6f4e3d" opacity=".18"/>
  <circle cx="680" cy="505" r="61" fill="#f0c6b3" stroke="#5b4a43" stroke-width="5"/>
  <path d="M619 502q8-108 119-62 30 34-2 110-31-65-115-43z" fill="#8a5a49" stroke="#5b4a43" stroke-width="5"/>
  <path d="M647 493q12-12 25 0M690 493q12-12 25 0" fill="none" stroke="#5b4a43" stroke-width="4"/>
@@ -83,7 +83,7 @@
  <g class="typing t3" stroke="#e8bc73" stroke-width="13" stroke-linecap="round"><path d="M638 590l26 33M722 590l-26 33"/></g>
  <rect x="598" y="635" width="164" height="72" rx="15" fill="url(#wood)" stroke="#825b44" stroke-width="5"/><rect x="634" y="650" width="92" height="43" rx="7" fill="#dbe8e6" stroke="#656967" stroke-width="5"/>
 </g>
-<g class="person p4">
+<g class="person p4"><ellipse cx="885" cy="708" rx="110" ry="18" fill="#6f4e3d" opacity=".18"/>
  <circle cx="885" cy="505" r="61" fill="#edc2b1" stroke="#5b4a43" stroke-width="5"/>
  <path d="M824 502q7-108 116-66 35 34-2 112-28-67-112-44z" fill="#665f4c" stroke="#5b4a43" stroke-width="5"/>
  <path d="M852 493q12-12 25 0M895 493q12-12 25 0" fill="none" stroke="#5b4a43" stroke-width="4"/>
@@ -93,7 +93,7 @@
  <g class="typing t4" stroke="#8eb99b" stroke-width="13" stroke-linecap="round"><path d="M843 590l26 33M927 590l-26 33"/></g>
  <rect x="803" y="635" width="164" height="72" rx="15" fill="url(#wood)" stroke="#825b44" stroke-width="5"/><rect x="839" y="650" width="92" height="43" rx="7" fill="#dbe8e6" stroke="#656967" stroke-width="5"/>
 </g>
-<g class="person p5">
+<g class="person p5"><ellipse cx="1090" cy="708" rx="110" ry="18" fill="#6f4e3d" opacity=".18"/>
  <circle cx="1090" cy="505" r="61" fill="#efc5b5" stroke="#5b4a43" stroke-width="5"/>
  <path d="M1029 502q8-108 119-66 32 35-3 112-28-66-114-44z" fill="#574a46" stroke="#5b4a43" stroke-width="5"/>
  <path d="M1057 493q12-12 25 0M1100 493q12-12 25 0" fill="none" stroke="#5b4a43" stroke-width="4"/>
