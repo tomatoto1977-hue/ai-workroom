@@ -174,7 +174,7 @@ async function playWorkflow(data){
    await new Promise(r=>setTimeout(r,500));
  }
  workflowRunning=false; apiDriven=false;
- state.score=data.gate?.passed?95:Math.min(state.score,94);
+ state.score=(typeof data.gate?.score==='number')?data.gate.score:(data.gate?.passed?95:Math.min(state.score,94));
  document.getElementById('managerTask').textContent=data.gate?.passed?'品質95点合格：最終成果を統括AIへ':'工程完了：品質'+state.score+'点。改善・再点検が必要';
  log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
  render();
@@ -227,10 +227,10 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      });
      document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
      if(data.gate&&data.gate.passed){
-       state.score=95;
+       state.score=typeof data.gate.score==='number'?data.gate.score:95;
        log('統括AI：品質ゲート95点条件を確認');
      }else{
-       state.score=Math.min(state.score,94);
+       state.score=typeof data.gate?.score==='number'?data.gate.score:Math.min(state.score,94);
        log('統括AI：品質ゲート95点は未達。改善工程を継続');
      }
      render();
