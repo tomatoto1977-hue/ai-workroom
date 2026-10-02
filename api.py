@@ -97,36 +97,41 @@ async def orchestrate(req: RunRequest):
             "results": results,
         }
 
-    first = await asyncio.gather(
-        ask(*ROLES[1], req.instruction, req.project, req.max_output_tokens),
-        ask(*ROLES[2], req.instruction, req.project, req.max_output_tokens),
-        ask(*ROLES[4], req.instruction, req.project, req.max_output_tokens),
-        ask(*ROLES[5], req.instruction, req.project, req.max_output_tokens),
-    )
-    context = "\n\n".join(f"{x['role']}: {x['text']}" for x in first)
-    downstream = await asyncio.gather(
-        ask(*ROLES[3], req.instruction, context, req.max_output_tokens),
-        ask(*ROLES[6], req.instruction, context, req.max_output_tokens),
-        ask(*ROLES[8], req.instruction, context, req.max_output_tokens),
-        ask(*ROLES[9], req.instruction, context, req.max_output_tokens),
-        ask(*ROLES[10], req.instruction, context, req.max_output_tokens),
-    )
-    all_context = context + "\n\n" + "\n\n".join(f"{x['role']}: {x['text']}" for x in downstream)
-    evidence, manager = await asyncio.gather(
-        ask(*ROLES[7], req.instruction, all_context, req.max_output_tokens),
-        ask(*ROLES[0], req.instruction, all_context, req.max_output_tokens),
-    )
-    results = first + downstream + [evidence, manager]
+    # 実AIモードは工程順に実行し、各工程の成果を次工程へ明示的に受け渡す。
+    workflow = [
+        ("調査", [ROLES[1], ROLES[2], ROLES[4], ROLES[5]]),
+        ("企画", [ROLES[3]]),
+        ("制作", [ROLES[6], ROLES[8]]),
+        ("品質確認", [ROLES[7], ROLES[9]]),
+        ("実装", [ROLES[10]]),
+        ("統括", [ROLES[0]]),
+    ]
+    results = []
+    context = req.project
+    for stage, role_defs in workflow:
+        stage_results = await asyncio.gather(*[
+            ask(role, job, req.instruction, context, req.max_output_tokens)
+            for role, job in role_defs
+        ])
+        for item in stage_results:
+            item["stage"] = stage
+        results.extend(stage_results)
+        context += "\n\n" + f"【{stage}工程の受け渡し成果】\n" + "\n".join(
+            f"{x['role']}: {x['text']}" for x in stage_results
+        )
+
+    passed = all(x["status"] == "completed" for x in results)
     return {
         "ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
-        "workflow": [
-            {"stage": "調査", "roles": ["市場調査AI", "競争戦略AI", "情報収集AI", "予算AI"]},
-            {"stage": "企画", "roles": ["企画AI"]},
-            {"stage": "制作", "roles": ["文章化AI", "動画制作AI"]},
-            {"stage": "品質確認", "roles": ["エビデンスAI", "編集AI"]},
-            {"stage": "実装", "roles": ["実装AI"]},
-            {"stage": "統括", "roles": ["統括AI"]},
+        "workflow": [{"stage": stage, "roles": [r[0] for r in role_defs]} for stage, role_defs in workflow],
+        "handoff_order": [
+            "調査→企画", "企画→制作", "制作→品質確認",
+            "品質確認→実装", "実装→統括"
         ],
-        "gate": {"target": 95, "passed": all(x["status"] == "completed" for x in results)},
+        "gate": {
+            "target": 95,
+            "passed": passed,
+            "reason": "全担当の実AI成果がcompletedの場合のみ95点条件を満たす"
+        },
         "results": results,
     }
