@@ -61,7 +61,7 @@ const positions=[
 ];
 let paused=false,timer=null,logs=[];
 const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
- score:82,progress:[70,45,60,30,20],
+ score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
  delivered:[false,false,false,false,false],
  instruction:'節約・家計ショート動画'
@@ -96,27 +96,28 @@ function tick(){
  if(paused)return;
  roles.forEach((r,i)=>{
    if(state.phases[i]==='waiting'){
-     if(i===0 || state.delivered[i]) state.phases[i]='working';
+     if(i===0 || state.delivered[i-1]) state.phases[i]='working';
    } else if(state.phases[i]==='thinking'){
      if(Math.random()<.38) state.phases[i]='working';
    } else if(state.phases[i]==='working'){
      state.progress[i]=Math.min(100,state.progress[i]+(i===0?2:1+Math.floor(Math.random()*3)));
      if(Math.random()<.13) state.phases[i]='thinking';
      if(state.progress[i]>=100){
-       state.phases[i]='done';
-       if(i<4){state.delivered[i]=true;moveDocument(i,i+1,'資料を持って席を立ち、引き渡し');state.phases[i+1]='waiting';}
-       else log('編集AI：最終成果物を統括AIへ返却');
+       if((state.quality?.[i]??state.score)<95){state.progress[i]=80;state.phases[i]='thinking';log(roles[i][0]+'：品質ゲート未達。改善ラウンドを開始');}
+       else {state.phases[i]='done';if(i<4){state.delivered[i]=true;moveDocument(i,i+1,'資料を持って席を立ち、引き渡し');state.phases[i+1]='waiting';}else log('編集AI：最終成果物を統括AIへ返却');}
      }
    }
  });
  if(Math.random()<.18) log(roles[Math.floor(Math.random()*5)][0]+'：'+phaseLog[state.phases[Math.floor(Math.random()*5)]]);
- if(state.score<95 && Math.random()<.12)state.score++;
+ if(!state.quality)state.quality=[82,82,82,82,82];
+ if(Math.random()<.12){const q=Math.floor(Math.random()*5);if(state.quality[q]<95)state.quality[q]++;}
+ state.score=Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length);
  if(state.score>=95 && Math.random()<.03) log('統括AI：品質95点以上を確認。次工程へ進行');
  render();
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
-function newProject(){state.progress=[0,0,0,0,0];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
+function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;
  state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
  log('統括AI：ユーザー指示を受領 → 各担当へ分担');
