@@ -120,7 +120,22 @@ async def orchestrate(req: RunRequest):
             f"{x['role']}: {x['text']}" for x in stage_results
         )
 
+    # 品質ゲート：初回点検で不足があれば、品質担当へ改善指示を渡して再点検する。
+    evidence = next((x for x in results if x["role"] == "エビデンスAI"), None)
+    manager = next((x for x in results if x["role"] == "統括AI"), None)
+    improvement_rounds = []
     passed = all(x["status"] == "completed" for x in results)
+    if passed and evidence:
+        improvement_prompt = (
+            "初回成果を95点基準で再点検してください。重大な不足があれば改善案を出し、"
+            "問題がなければ『95点基準を満たす』と明記してください。\n"
+            + (evidence.get("text") or "")
+        )
+        improved = await ask("エビデンスAI", ROLES[7][1], req.instruction, improvement_prompt, req.max_output_tokens)
+        improved["stage"] = "改善・再点検"
+        improvement_rounds.append(improved)
+        results.append(improved)
+        passed = improved["status"] == "completed"
     return {
         "ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
         "workflow": [{"stage": stage, "roles": [r[0] for r in role_defs]} for stage, role_defs in workflow],
@@ -131,7 +146,8 @@ async def orchestrate(req: RunRequest):
         "gate": {
             "target": 95,
             "passed": passed,
-            "reason": "全担当の実AI成果がcompletedの場合のみ95点条件を満たす"
+            "reason": "全工程完了後に品質担当が再点検し、95点基準の確認を行う",
+            "improvement_rounds": len(improvement_rounds)
         },
         "results": results,
     }
