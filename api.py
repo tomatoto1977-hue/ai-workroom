@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 
-app = FastAPI(title="AI Workroom API", version="1.1.0")
+app = FastAPI(title="AI Workroom API", version="1.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://ai-workroom.onrender.com"],
@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = os.getenv("OPENAI_MODEL", "gpt-6-luna")
+MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 client = AsyncOpenAI(api_key=API_KEY) if API_KEY else None
 
@@ -39,7 +39,7 @@ class RunRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"ok": True, "service": "ai-workroom-api", "version": "1.1.0", "health": "/health"}
+    return {"ok": True, "service": "ai-workroom-api", "version": "1.2.0", "health": "/health"}
 
 @app.get("/health")
 async def health():
