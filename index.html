@@ -26,7 +26,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .status{position:absolute;left:1.7%;bottom:1.7%;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.95);font-size:10px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.1)}
 .dyn-card{font-size:5px;padding:2px 3px;border-width:1px;border-radius:7px}.dyn-card b{font-size:5.5px}.dyn-card small{margin:1px 0}.dyn-card .mini-bar{height:2px}.thought{font-size:6px;padding:3px 5px;border-width:1px}.doc{width:13px;height:10px;font-size:5px;line-height:7px;border-width:1px}
 @media(max-width:700px){
-.reference{object-fit:cover;object-position:center center;content:url("./visual-mobile.svg?v=5")}
+.reference{object-fit:cover;object-position:center center;content:url("./visual-mobile.svg?v=6")}
 .shell{padding:0;overflow:hidden;background:#efe2d5}.artboard{width:100vw;height:100dvh;aspect-ratio:auto;border-radius:0;box-shadow:none;overflow:hidden}
 .project{left:6%;top:3.2%;width:88%;font-size:9px;padding:7px 10px;z-index:70}.project strong{font-size:10px;line-height:1.15}.project span{font-size:8px}
 .agents{left:3%;right:3%;top:24%;height:11%;grid-template-columns:repeat(5,1fr);gap:1.2%;z-index:80}.agent{height:100%;min-height:62px;padding:6px 5px;border-width:1px;border-radius:9px;background:rgba(255,255,255,.97)}.agent b{font-size:7px}.agent small{font-size:5.5px;line-height:1.25}.agent .bar{height:3px}.score{font-size:6px}
@@ -244,5 +244,5 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
 render();start();
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=35').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=36').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
 </body></html>
