@@ -30,7 +30,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </head>
 <body>
 <div class="shell"><main class="artboard" id="board">
-<img class="reference" src="./visual-reference.svg?v=20261002-realistic9" alt="AI作業室">
+<img class="reference" src="./visual-reference.svg?v=20261002-realistic10" alt="AI作業室">
 <div class="panel project"><strong id="projectTitle">現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">工程 45%</span></div>
 <div class="agents" id="agents">
 <div class="panel agent" data-i="0"><b>調査AI <span class="score">70%</span></b><small>作業中… 市場データ・根拠を収集</small><div class="bar"><i></i></div></div>
@@ -229,5 +229,5 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
 render();start();
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=29').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=30').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
 </body></html>
