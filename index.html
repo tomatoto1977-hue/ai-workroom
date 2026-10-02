@@ -42,7 +42,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <button class="hot new" aria-label="新規プロジェクト" onclick="newProject()"></button>
 <button class="hot pause" aria-label="一時停止・再開" onclick="togglePause()"></button>
 <button class="hot settings" aria-label="設定" onclick="showToast('設定：95点ゲート／手動承認／外部投稿OFF')"></button>
-<div class="dynamic-agents" id="dynamicAgents"><div class="dyn-card" style="left:6%;top:31%"><b>調査AI <span style="float:right">70%</span></b><small>作業中… 市場データ・根拠を収集</small><div class="mini-bar"><i style="width:70%"></i></div></div><div class="dyn-card" style="left:25%;top:31%"><b>企画AI <span style="float:right">45%</span></b><small>考え中… 競争戦略を反映</small><div class="mini-bar"><i style="width:45%"></i></div></div><div class="dyn-card" style="left:43%;top:35%"><b>台本AI <span style="float:right">60%</span></b><small>作業中… 視聴者向けに文章化</small><div class="mini-bar"><i style="width:60%"></i></div></div><div class="dyn-card" style="left:61%;top:31%"><b>チェックAI <span style="float:right">30%</span></b><small>待機中… 受け渡し待ち</small><div class="mini-bar"><i style="width:30%"></i></div></div><div class="dyn-card" style="left:78%;top:35%"><b>編集AI <span style="float:right">20%</span></b><small>作業中… 動画構成・編集</small><div class="mini-bar"><i style="width:20%"></i></div></div></div>
+
 <div class="handoff-layer" id="handoffLayer"></div>
 <div class="thought" id="thought"></div>
 </main></div>
@@ -107,15 +107,20 @@ function tick(){
  });
  if(Math.random()<.18) log(roles[Math.floor(Math.random()*5)][0]+'：'+phaseLog[state.phases[Math.floor(Math.random()*5)]]);
  if(state.score<95 && Math.random()<.12)state.score++;
- if(state.score>=95) log('統括AI：品質95点以上を確認');
+ if(state.score>=95 && Math.random()<.03) log('統括AI：品質95点以上を確認。次工程へ進行');
  render();
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
-function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';log('統括AI：ユーザー指示を受領');x.value='';start();render();}
+function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;
+ state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
+ log('統括AI：ユーザー指示を受領 → 各担当へ分担');
+ roles.forEach((r,i)=>{if(state.phases[i]==='done')state.progress[i]=Math.min(state.progress[i],95); if(i===0)state.phases[i]='working'; else if(state.phases[i]!=='working')state.phases[i]=i===1?'thinking':'waiting';});
+ log('調査AI：調査を開始');log('企画AI：競争戦略を検討');log('台本AI・チェックAI・編集AI：順次受領待ち');
+ x.value='';start();render();}
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 render();start();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=14').catch(()=>{});</script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=16').catch(()=>{});</script>
 </body></html>
