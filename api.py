@@ -43,7 +43,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "ai-workroom-api", "version": "1.1.0",
+    return {"ok": True, "service": "ai-workroom-api", "version": "1.2.0",
             "openai_configured": bool(API_KEY), "model": MODEL}
 
 async def ask(role: str, job: str, instruction: str, context: str, max_output_tokens: int) -> dict[str, Any]:
@@ -120,22 +120,53 @@ async def orchestrate(req: RunRequest):
             f"{x['role']}: {x['text']}" for x in stage_results
         )
 
-    # 品質ゲート：初回点検で不足があれば、品質担当へ改善指示を渡して再点検する。
+    # 品質ゲート：完了しただけでは合格にせず、品質判定AIが数値評価を行う。
+    # 95点未満なら改善→再点検を最大3ラウンド行う。
     evidence = next((x for x in results if x["role"] == "エビデンスAI"), None)
-    manager = next((x for x in results if x["role"] == "統括AI"), None)
     improvement_rounds = []
-    passed = all(x["status"] == "completed" for x in results)
-    if passed and evidence:
-        improvement_prompt = (
-            "初回成果を95点基準で再点検してください。重大な不足があれば改善案を出し、"
-            "問題がなければ『95点基準を満たす』と明記してください。\n"
-            + (evidence.get("text") or "")
-        )
-        improved = await ask("エビデンスAI", ROLES[7][1], req.instruction, improvement_prompt, req.max_output_tokens)
-        improved["stage"] = "改善・再点検"
-        improvement_rounds.append(improved)
-        results.append(improved)
-        passed = improved["status"] == "completed"
+    quality_score = 0
+    passed = False
+
+    async def judge_quality(round_no: int, material: str) -> dict[str, Any]:
+        prompt = f"""品質ゲート判定です。ラウンド{round_no}。
+ユーザー指示: {req.instruction}
+成果物:
+{material}
+100点満点で厳密に採点してください。
+基準: 事実性25、目的適合20、具体性20、伝達性15、実装可能性10、安全性10。
+JSONのみで返してください: {{"score":0,"issues":["..."],"improvements":["..."]}}
+scoreは0〜100の整数。"""
+        if not client:
+            return {"score": 82, "issues": ["OPENAI_API_KEY未設定"], "improvements": ["API接続後に実品質判定"]}
+        try:
+            r = await client.responses.create(model=MODEL, input=prompt, max_output_tokens=400)
+            import json
+            raw = r.output_text.strip()
+            data = json.loads(raw)
+            return {"score": max(0, min(100, int(data.get("score", 0)))),
+                    "issues": data.get("issues", []), "improvements": data.get("improvements", [])}
+        except Exception as e:
+            return {"score": 0, "issues": [f"品質判定エラー: {str(e)[:180]}"], "improvements": []}
+
+    material = "\n".join(f"{x['role']}: {x['text']}" for x in results if x.get("status") == "completed")
+    for round_no in range(1, 4):
+        judged = await judge_quality(round_no, material)
+        quality_score = judged["score"]
+        improvement_rounds.append({"round": round_no, **judged})
+        if quality_score >= 95:
+            passed = True
+            break
+        if round_no < 3 and judged["improvements"]:
+            improve_prompt = (
+                f"品質ゲート{quality_score}点。以下の改善点をすべて反映して、次工程へ渡せる完成版に更新してください。"
+                f"改善点: {judged['improvements']}\n現成果:\n{material}"
+            )
+            improved = await ask("統括AI", ROLES[0][1], req.instruction, improve_prompt, req.max_output_tokens)
+            improved["stage"] = f"改善ラウンド{round_no}"
+            results.append(improved)
+            if improved["status"] == "completed":
+                material += "\n\n【改善版】\n" + improved["text"]
+
     return {
         "ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
         "workflow": [{"stage": stage, "roles": [r[0] for r in role_defs]} for stage, role_defs in workflow],
@@ -146,8 +177,9 @@ async def orchestrate(req: RunRequest):
         "gate": {
             "target": 95,
             "passed": passed,
-            "reason": "全工程完了後に品質担当が再点検し、95点基準の確認を行う",
-            "improvement_rounds": len(improvement_rounds)
+            "score": quality_score,
+            "reason": "95点以上のみ合格。未達時は改善→再点検を最大3ラウンド実施",
+            "improvement_rounds": improvement_rounds
         },
         "results": results,
     }
