@@ -31,7 +31,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <body>
 <div class="shell"><main class="artboard" id="board">
 <img class="reference" src="./visual-reference.svg" alt="AI作業室">
-<div class="panel project"><strong>現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">全体 45%</span></div>
+<div class="panel project"><strong id="projectTitle">現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">全体 45%</span></div>
 <div class="agents" id="agents">
 <div class="panel agent" data-i="0"><b>調査AI <span class="score">70%</span></b><small>作業中… 市場データ・根拠を収集</small><div class="bar"><i></i></div></div>
 <div class="panel agent" data-i="1"><b>企画AI <span class="score">45%</span></b><small>考え中… 競争戦略を反映</small><div class="bar"><i></i></div></div>
@@ -154,7 +154,10 @@ function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!l
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
- state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
+ state.instruction=x.value.trim();
+ const projectLabel=state.instruction.replace(/\s+/g,' ').trim();
+ document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(projectLabel.length>34?projectLabel.slice(0,34)+'…':projectLabel);
+ document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
  log('統括AI：ユーザー指示を受領 → 各担当へ分担');
  roles.forEach((r,i)=>{if(state.phases[i]==='done')state.progress[i]=Math.min(state.progress[i],95); if(i===0)state.phases[i]='working'; else if(state.phases[i]!=='working')state.phases[i]=i===1?'thinking':'waiting';});
  log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
@@ -213,7 +216,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
  finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
 }
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
-document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
+document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
 render();start();
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=19').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
 </body></html>
