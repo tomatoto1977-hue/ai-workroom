@@ -130,8 +130,9 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
    const data=await r.json();
    if(data.mode==='openai'){
      log('統括AI：実AI処理が完了。各担当の成果を受領');
-     data.results.forEach(item=>{if(item.status==='completed')log(item.role+'：成果を次工程へ引き渡し');});
-     document.getElementById('managerTask').textContent='実AI処理完了：成果を確認・統合中';
+     data.results.forEach(item=>{if(item.status==='completed'){const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);log(item.role+'：成果を次工程へ引き渡し'+(summary?'「'+summary+'」':''));}});
+     const manager=data.results.find(item=>item.role==='統括AI');
+     document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
      state.score=Math.max(state.score,95);render();
    }else{
      log('AI API：未設定のため安全な画面シミュレーションを継続');
