@@ -18,14 +18,14 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .new{left:61%;top:3%;width:9%;height:6.5%}.pause{left:70%;top:3%;width:8%;height:6.5%}.settings{left:78.5%;top:3%;width:9%;height:6.5%}
 .dynamic-agents{position:absolute;inset:0;pointer-events:none;z-index:30;display:block}.dyn-card{position:absolute;width:15.5%;min-height:6.8%;padding:5px 7px;background:rgba(255,255,255,.94);border:2px solid #d5b49a;border-radius:14px;box-shadow:0 4px 14px rgba(70,45,30,.14);font-size:9px;transition:transform .5s}.dyn-card.active{transform:translateY(-3px)}.dyn-card b{display:block;font-size:10px}.dyn-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0}.dyn-card .mini-bar{height:4px;background:#eadfd5;border-radius:5px;overflow:hidden}.dyn-card .mini-bar i{display:block;height:100%;background:#8b6a57;transition:width .4s}.thought{position:absolute;left:45%;top:48%;display:none;z-index:7;padding:7px 11px;background:#fff;border:2px solid #d8c1ae;border-radius:18px;font-weight:800;font-size:11px;box-shadow:0 5px 18px rgba(0,0,0,.14)}.handoff-layer{position:absolute;inset:0;pointer-events:none;z-index:6}.doc{position:absolute;width:24px;height:18px;border-radius:4px;background:#fff;border:2px solid #8b6a57;box-shadow:0 2px 6px rgba(0,0,0,.18);transform:translate(-50%,-50%);font-size:9px;text-align:center;line-height:14px;transition:left 1.2s ease-in-out,top 1.2s ease-in-out}.panel{position:absolute;background:rgba(255,255,255,.95);border:2px solid rgba(205,169,139,.8);box-shadow:0 5px 16px rgba(80,55,40,.12);border-radius:16px;backdrop-filter:blur(3px)}
 .project{left:29%;top:10.8%;width:40%;padding:9px 14px}.project strong{font-size:14px}.project span{float:right;font-size:12px;color:#7b6a60}
-.agents{position:absolute;left:5%;right:16.5%;top:39%;display:grid;grid-template-columns:repeat(5,1fr);gap:1.4%}
+.agents{position:absolute;left:4%;right:16%;top:38%;display:grid;grid-template-columns:repeat(5,1fr);gap:1.1%;z-index:25}.agent{background:rgba(255,255,255,.96);border:2px solid #d5b49a;border-radius:14px;box-shadow:0 4px 14px rgba(70,45,30,.14);min-height:58px}
 .agent{min-width:0;padding:7px 9px}.agent b{font-size:12px}.agent small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 5px;color:#75645b}.bar{height:6px;background:#eadfd5;border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:9px;transition:width .35s}.score{float:right;font-size:11px;font-weight:800}
 .manager{left:5.5%;bottom:6.5%;width:24%;padding:8px 11px}.manager b{font-size:13px}.manager small{display:block;color:#78675e;margin-top:2px}.manager .quality{float:right;font-weight:900;color:#d28d35}
 .log{position:absolute;right:1.8%;top:12.8%;width:11.4%;height:52%;padding:7px;overflow:hidden}.log h3{font-size:13px;margin:0 0 5px}.log div{font-size:9px;line-height:1.45;padding:3px 0;border-bottom:1px dashed #e7d8cb}.gate{position:absolute;right:1.8%;bottom:20.5%;width:11.4%;padding:7px;text-align:center}.gate b{font-size:11px}.gate strong{display:block;font-size:20px;color:#d18d39}.toast{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);display:none;z-index:5;min-width:220px;max-width:70%;padding:12px 15px;background:#fff;border:2px solid #d4b196;border-radius:16px;box-shadow:0 12px 35px rgba(0,0,0,.16);text-align:center;font-size:13px}
 .control{position:absolute;left:32%;bottom:1.7%;width:36%;display:flex;gap:6px}.control input{flex:1;border:1px solid #d9c6b7;border-radius:18px;padding:7px 10px;background:rgba(255,255,255,.95);outline:none;font-size:11px}.control button{border:0;border-radius:18px;padding:7px 12px;background:#8b6a57;color:white;font-weight:800;font-size:11px}
 .status{position:absolute;left:1.7%;bottom:1.7%;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.95);font-size:10px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.1)}
 .dyn-card{font-size:5px;padding:2px 3px;border-width:1px;border-radius:7px}.dyn-card b{font-size:5.5px}.dyn-card small{margin:1px 0}.dyn-card .mini-bar{height:2px}.thought{font-size:6px;padding:3px 5px;border-width:1px}.doc{width:13px;height:10px;font-size:5px;line-height:7px;border-width:1px}
-@media(max-width:700px){.shell{padding:0}.artboard{width:100vw;height:66.6667vw;aspect-ratio:3/2;border-radius:0;box-shadow:none}.project{font-size:8px;padding:4px 6px}.project strong{font-size:8px}.project span{font-size:7px}.agents{top:39.5%;left:5%;right:17%}.agent{padding:3px 4px;border-radius:8px}.agent b{font-size:6.5px}.agent small{font-size:5.5px;margin:1px 0 2px}.bar{height:3px}.score{font-size:5.5px}.manager{font-size:6px;padding:4px 6px}.manager b{font-size:7px}.manager small{font-size:5px}.log{padding:3px}.log h3{font-size:7px;margin:0}.log div{font-size:4.5px}.gate{padding:3px}.gate b{font-size:5.5px}.gate strong{font-size:10px}.control{left:31%;width:37%;bottom:1.2%}.control input{font-size:6px;padding:4px 6px}.control button{font-size:6px;padding:4px 7px}.status{font-size:5.5px;padding:3px 5px}}
+@media(max-width:700px){.shell{padding:0}.artboard{width:100vw;height:66.6667vw;aspect-ratio:3/2;border-radius:0;box-shadow:none}.project{font-size:8px;padding:4px 6px}.project strong{font-size:8px}.project span{font-size:7px}.agents{top:37%;left:4%;right:16%;gap:1%}.agent{min-height:38px;padding:3px 4px;border-width:1px;border-radius:8px}.agent{padding:3px 4px;border-radius:8px}.agent b{font-size:6.5px}.agent small{font-size:5.5px;margin:1px 0 2px}.bar{height:3px}.score{font-size:5.5px}.manager{font-size:6px;padding:4px 6px}.manager b{font-size:7px}.manager small{font-size:5px}.log{padding:3px}.log h3{font-size:7px;margin:0}.log div{font-size:4.5px}.gate{padding:3px}.gate b{font-size:5.5px}.gate strong{font-size:10px}.control{left:31%;width:37%;bottom:1.2%}.control input{font-size:6px;padding:4px 6px}.control button{font-size:6px;padding:4px 7px}.status{font-size:5.5px;padding:3px 5px}}
 </style>
 </head>
 <body>
@@ -63,11 +63,13 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
 function renderAgents(){
- const el=document.getElementById('dynamicAgents');el.innerHTML='';
+ const el=document.getElementById('agents');
+ if(!el)return;
+ el.innerHTML='';
  roles.forEach((r,i)=>{
-   const d=document.createElement('div');d.className='dyn-card '+(state.phases[i]==='working'?'active':'');
-   d.style.left=positions[i].x+'%';d.style.top=(positions[i].y-1)+'%;';
-   d.innerHTML='<b>'+r[0]+' <span style="float:right">'+state.progress[i]+'%</span></b><small>'+phaseText[state.phases[i]]+' '+r[1]+'</small><div class="mini-bar"><i style="width:'+state.progress[i]+'%"></i></div>';
+   const d=document.createElement('div');
+   d.className='panel agent '+(state.phases[i]==='working'?'active':'');
+   d.innerHTML='<b>'+r[0]+' <span class="score">'+state.progress[i]+'%</span></b><small>'+phaseText[state.phases[i]]+' '+r[1]+'</small><div class="bar"><i style="width:'+state.progress[i]+'%;background:#8b6a57"></i></div>';
    el.appendChild(d);
  });
 }
@@ -108,7 +110,7 @@ function tick(){
  if(state.score>=95) log('統括AI：品質95点以上を確認');
  render();
 }
-function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);log('統括AI：5人を非同期で稼働開始');render();}
+function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';log('統括AI：ユーザー指示を受領');x.value='';start();render();}
