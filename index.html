@@ -137,6 +137,8 @@ async function playWorkflow(data){
    g.cards.forEach(i=>{state.progress[i]=100;state.phases[i]='done';});
    const matching=results.filter(x=>g.roles.includes(x.role));
    matching.forEach(x=>{if(x.status==='completed')log(x.role+'：成果を完了し次工程へ引き渡し');});
+   const rechecks=results.filter(x=>x.stage==='改善・再点検');
+   rechecks.forEach(x=>log(x.role+'：95点基準の改善・再点検を実施'));
    for(let j=0;j<g.cards.length-1;j++) moveDocument(g.cards[j],g.cards[j+1],g.stage+'工程の成果を引き渡し');
    if(g.cards.length===2) state.phases[g.cards[1]]='waiting';
    render();
