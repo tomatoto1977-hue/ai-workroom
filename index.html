@@ -1,3 +1,86 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fff7ef"><link rel="manifest" href="./manifest.webmanifest"><link rel="apple-touch-icon" href="./icon.svg"><title>AI作業室</title><style>
-*{box-sizing:border-box}html,body{margin:0;background:#f6eadc;color:#333;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}body{min-height:100vh;overflow-x:auto}.shell{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:12px}.artboard{position:relative;width:min(1350px,100vw);aspect-ratio:3/2;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(83,53,33,.18)}.reference{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill}.hot{position:absolute;border:0;background:transparent;cursor:pointer;border-radius:12px}.new{left:61.2%;top:3%;width:9.4%;height:6.5%}.pause{left:70.7%;top:3%;width:8.2%;height:6.5%}.settings{left:79%;top:3%;width:9%;height:6.5%}.spark{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff7d6;box-shadow:0 0 0 4px rgba(255,255,255,.55),0 0 18px #ffd66a;opacity:0;pointer-events:none}.s1{left:39.7%;top:33.5%}.s2{left:59.2%;top:35.5%}.s3{left:72.5%;top:47.5%}.spark.on{animation:fly 1.4s ease-in-out infinite}@keyframes fly{0%{opacity:0;transform:scale(.4) translate(0,0)}25%{opacity:1}70%{opacity:1}100%{opacity:0;transform:scale(1.2) translate(90px,-30px)}}.pulse{position:absolute;right:1.8%;top:12.1%;width:1.2%;aspect-ratio:1;background:#38caa0;border:3px solid white;border-radius:50%;box-shadow:0 0 0 0 rgba(56,202,160,.55);animation:pulse 1.7s infinite}@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(56,202,160,0)}}.progress-overlay{position:absolute;height:.9%;border-radius:99px;background:rgba(255,255,255,.45);overflow:hidden;pointer-events:none}.progress-overlay i{display:block;height:100%;width:0;border-radius:99px;transition:width .3s}.p1{left:4.2%;top:30.0%;width:14.8%}.p2{left:28.3%;top:27.2%;width:14.2%}.p3{left:47.1%;top:31.0%;width:14.7%}.p4{left:67.0%;top:29.4%;width:13.8%}.p5{left:67.0%;top:62.0%;width:13.8%}.status-pill{position:absolute;left:1.6%;bottom:1.5%;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.94);font-size:12px;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,.12);opacity:.96}.status-pill small{font-weight:500;color:#777;margin-left:5px}@media(max-width:700px){.shell{padding:0;justify-content:flex-start}.artboard{width:900px;min-width:900px;border-radius:0;box-shadow:none}.status-pill{font-size:11px}}@media(min-width:701px){.artboard{width:min(1350px,calc(100vw - 24px))}}
-</style></head><body><div class="shell"><div class="artboard" id="board"><img class="reference" src="./visual-reference.svg" alt="AI作業室のビジュアル"><button class="hot new" aria-label="新規プロジェクト" onclick="start()"></button><button class="hot pause" aria-label="一時停止" onclick="togglePause()"></button><button class="hot settings" aria-label="表示設定" onclick="settings()"></button><div class="pulse"></div><div class="spark s1"></div><div class="spark s2"></div><div class="spark s3"></div><div class="progress-overlay p1"><i id="q1"></i></div><div class="progress-overlay p2"><i id="q2"></i></div><div class="progress-overlay p3"><i id="q3"></i></div><div class="progress-overlay p4"><i id="q4"></i></div><div class="progress-overlay p5"><i id="q5"></i></div><div class="status-pill" id="live">AI作業室 LIVE <small>ビジュアル参照をそのまま使用中</small></div></div></div><script>let timer=null,paused=false,running=false;const ids=["q1","q2","q3","q4","q5"];const cols=["#4da8e5","#f2b32f","#ed6f92","#45c89b","#8f72df"];function paint(i,v){const e=document.getElementById(ids[i]);e.style.width=v+"%";e.style.background=cols[i]}function start(){if(running)return;running=true;paused=false;let t=0;document.querySelectorAll('.spark').forEach(x=>x.classList.add('on'));paint(0,5);paint(1,3);paint(2,2);paint(3,1);paint(4,1);timer=setInterval(()=>{if(paused)return;t+=1;const vals=[Math.min(70,t*1.7),Math.min(60,Math.max(3,(t-5)*1.5)),Math.min(60,Math.max(2,(t-10)*1.4)),Math.min(45,Math.max(1,(t-18)*1.3)),Math.min(30,Math.max(1,(t-26)*1.1))];vals.forEach((v,i)=>paint(i,v));if(t>=55){clearInterval(timer);running=false;document.getElementById('live').innerHTML='AI作業室 LIVE <small>工程サイクル完了・品質ゲート確認中</small>';}} ,180)}function togglePause(){paused=!paused;document.getElementById('live').innerHTML=paused?'AI作業室 PAUSED <small>上部の一時停止ボタンで再開</small>':'AI作業室 LIVE <small>作業を再開しました</small>'}function settings(){document.getElementById('live').innerHTML='AI作業室 <small>表示設定：参照ビジュアル固定</small>'}start();</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff7ef">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>AI作業室</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#f3e6d7;color:#3a3029;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+body{min-height:100vh;overflow:auto}.shell{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:12px}
+.artboard{position:relative;width:min(1350px,calc(100vw - 24px));aspect-ratio:3/2;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 12px 35px rgba(83,53,33,.18)}
+.reference{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill}
+.hot{position:absolute;border:0;background:transparent;cursor:pointer;border-radius:12px}
+.hot:focus-visible{outline:3px solid #5c9ded}.new{left:61.2%;top:3%;width:9.4%;height:6.5%}.pause{left:70.7%;top:3%;width:8.2%;height:6.5%}.settings{left:79%;top:3%;width:9%;height:6.5%}
+.manager-hot{left:3%;bottom:11%;width:29%;height:17%}
+.spark{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff7d6;box-shadow:0 0 0 4px rgba(255,255,255,.55),0 0 18px #ffd66a;opacity:0;pointer-events:none}
+.s1{left:39.7%;top:33.5%}.s2{left:59.2%;top:35.5%}.s3{left:72.5%;top:47.5%}.spark.on{animation:fly 1.4s ease-in-out infinite}
+@keyframes fly{0%{opacity:0;transform:scale(.4) translate(0,0)}25%{opacity:1}70%{opacity:1}100%{opacity:0;transform:scale(1.2) translate(90px,-30px)}}
+.pulse{position:absolute;right:1.8%;top:12.1%;width:1.2%;aspect-ratio:1;background:#38caa0;border:3px solid white;border-radius:50%;box-shadow:0 0 0 0 rgba(56,202,160,.55);animation:pulse 1.7s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(56,202,160,0)}}
+.progress-overlay{position:absolute;height:.9%;border-radius:99px;background:rgba(255,255,255,.45);overflow:hidden;pointer-events:none}.progress-overlay i{display:block;height:100%;width:0;border-radius:99px;transition:width .35s}
+.p1{left:4.2%;top:30%;width:14.8%}.p2{left:28.3%;top:27.2%;width:14.2%}.p3{left:47.1%;top:31%;width:14.7%}.p4{left:67%;top:29.4%;width:13.8%}.p5{left:67%;top:62%;width:13.8%}
+.status-pill{position:absolute;left:1.6%;bottom:1.5%;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.94);font-size:12px;font-weight:800;box-shadow:0 3px 12px rgba(0,0,0,.12);opacity:.96}
+.status-pill small{font-weight:500;color:#777;margin-left:5px}
+.modal{position:fixed;inset:0;background:rgba(35,27,21,.38);backdrop-filter:blur(5px);display:none;align-items:flex-end;justify-content:center;z-index:20;padding:14px}
+.modal.show{display:flex}.panel{width:min(680px,100%);max-height:88vh;overflow:auto;background:#fffaf4;border-radius:24px;box-shadow:0 18px 60px rgba(0,0,0,.25);padding:18px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.panel h2{margin:0;font-size:21px}.close{border:0;background:#eee5dc;border-radius:50%;width:36px;height:36px;font-size:20px}
+.manager-box{margin:14px 0;background:#fff;border:1px solid #eadfd5;border-radius:18px;padding:12px}.manager-box label{font-weight:800;font-size:13px}.manager-box textarea{width:100%;min-height:78px;margin-top:8px;border:1px solid #ddd0c4;border-radius:12px;padding:10px;font:inherit;resize:vertical}
+.run{margin-top:9px;width:100%;border:0;border-radius:13px;padding:12px;background:#5c7bd9;color:white;font-weight:800;font-size:15px}
+.team{display:grid;grid-template-columns:1fr 1fr;gap:9px}.agent{background:#fff;border:1px solid #eadfd5;border-radius:15px;padding:10px}.agent-top{display:flex;justify-content:space-between;gap:8px;font-weight:800;font-size:13px}.state{font-size:11px;padding:3px 7px;border-radius:99px;background:#eef2f7}.state.work{background:#fff2cf}.state.pass{background:#dff6e9}.bar{height:7px;background:#eee8e2;border-radius:99px;overflow:hidden;margin:8px 0 5px}.bar i{display:block;height:100%;width:0;background:#6c8ee8;border-radius:99px;transition:width .3s}.score{font-size:12px;color:#6f665e}.log{margin-top:12px;background:#241e1a;color:#f6eee6;border-radius:16px;padding:11px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:150px;overflow:auto}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:30;background:#2e2824;color:white;padding:10px 14px;border-radius:99px;font-size:12px;display:none}.toast.show{display:block}
+@media(max-width:700px){.shell{padding:0;justify-content:flex-start}.artboard{width:900px;min-width:900px;border-radius:0;box-shadow:none}.status-pill{font-size:11px}.modal{padding:8px}.panel{border-radius:20px;max-height:92vh}.team{grid-template-columns:1fr}.manager-hot{bottom:10%;height:18%}}
+</style>
+</head>
+<body>
+<div class="shell"><div class="artboard" id="board">
+<img class="reference" src="./visual-reference.svg" alt="AI作業室">
+<button class="hot new" aria-label="新規プロジェクト" onclick="newProject()"></button>
+<button class="hot pause" aria-label="一時停止・再開" onclick="togglePause()"></button>
+<button class="hot settings" aria-label="設定" onclick="openSettings()"></button>
+<button class="hot manager-hot" aria-label="統括AIを開く" onclick="openManager()"></button>
+<div class="pulse"></div><div class="spark s1"></div><div class="spark s2"></div><div class="spark s3"></div>
+<div class="progress-overlay p1"><i id="q1"></i></div><div class="progress-overlay p2"><i id="q2"></i></div><div class="progress-overlay p3"><i id="q3"></i></div><div class="progress-overlay p4"><i id="q4"></i></div><div class="progress-overlay p5"><i id="q5"></i></div>
+<div class="status-pill" id="live">AI作業室 LIVE <small>統括AIが工程を管理中</small></div>
+</div></div>
+
+<div class="modal" id="managerModal" aria-hidden="true"><div class="panel">
+<div class="panel-head"><h2>🧑‍💼 統括AI — 作業指示</h2><button class="close" onclick="closeManager()">×</button></div>
+<div class="manager-box"><label>ここだけに指示してください</label><textarea id="instruction" placeholder="例：節約ジャンルで、今月の記事企画を3案作ってください。"></textarea><button class="run" onclick="dispatch()">統括AIに開始を指示</button></div>
+<div class="team" id="team"></div><div class="log" id="log"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const agents=[
+{name:"市場調査AI",task:"市場・競合の変化を調査",score:82},
+{name:"競争戦略AI",task:"勝ち筋と差別化を整理",score:82},
+{name:"企画AI",task:"企画を修正・具体化",score:82},
+{name:"情報収集AI",task:"必要な根拠を収集",score:82},
+{name:"予算AI",task:"コストと優先順位を確認",score:82},
+{name:"文章化AI",task:"成果物を文章に変換",score:82},
+{name:"エビデンスAI",task:"事実・根拠を検証",score:82},
+{name:"動画AI",task:"動画素材・構成を制作",score:82},
+{name:"編集AI",task:"最終編集と品質調整",score:82},
+{name:"実装AI",task:"公開可能な形へ実装",score:82}
+];
+let timer=null,paused=false,running=false,cycle=0;
+const ids=["q1","q2","q3","q4","q5"],cols=["#4da8e5","#f2b32f","#ed6f92","#45c89b","#8f72df"];
+function paint(i,v){const e=document.getElementById(ids[i]);if(e)e.style.width=v+"%";if(e)e.style.background=cols[i]}
+function log(msg){const el=document.getElementById("log");if(!el)return;el.innerHTML+="<div>["+new Date().toLocaleTimeString("ja-JP")+"] "+msg+"</div>";el.scrollTop=el.scrollHeight}
+function toast(msg){const e=document.getElementById("toast");e.textContent=msg;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),1800)}
+function renderTeam(){const el=document.getElementById("team");el.innerHTML=agents.map((a,i)=>'<div class="agent"><div class="agent-top"><span>'+a.name+'</span><span class="state '+(a.score>=95?"pass":"work")+'">'+(a.score>=95?"合格":"改善中")+'</span></div><div style="font-size:12px;color:#766d66;margin-top:4px">'+a.task+'</div><div class="bar"><i style="width:'+a.score+'%"></i></div><div class="score">'+a.score+'点 / 95点　改善ラウンド '+(a.score>=95?Math.max(1,Math.ceil((a.score-80)/3)):Math.max(1,Math.ceil((a.score-79)/3)))+'</div></div>').join("")}
+function start(){if(running)return;running=true;paused=false;cycle=0;agents.forEach(a=>a.score=82);document.querySelectorAll(".spark").forEach(x=>x.classList.add("on"));paint(0,5);paint(1,3);paint(2,2);paint(3,1);paint(4,1);log("統括AI：工程サイクルを開始");clearInterval(timer);timer=setInterval(tick,420)}
+function tick(){if(paused)return;cycle++;const stage=Math.min(4,Math.floor(cycle/12));for(let i=0;i<agents.length;i++){if(i<=Math.min(agents.length-1,stage*2+1)){if(agents[i].score<95)agents[i].score=Math.min(95,agents[i].score+(Math.random()>.22?2:1));}}
+const vals=[Math.min(100,cycle*3),Math.min(100,Math.max(3,(cycle-7)*3)),Math.min(100,Math.max(2,(cycle-14)*3)),Math.min(100,Math.max(1,(cycle-21)*3)),Math.min(100,Math.max(1,(cycle-29)*3))];vals.forEach((v,i)=>paint(i,v));if(cycle%6===0)log("統括AI：担当間の成果物を引き継ぎ、95点ゲートを再評価");renderTeam();if(agents.every(a=>a.score>=95)&&cycle>36){clearInterval(timer);running=false;document.getElementById("live").innerHTML='AI作業室 LIVE <small>全担当95点以上・工程完了</small>';log("品質ゲート：全担当95点以上。工程完了");toast("95点ゲートを通過しました");}}
+function togglePause(){paused=!paused;document.getElementById("live").innerHTML=paused?'AI作業室 PAUSED <small>一時停止中</small>':'AI作業室 LIVE <small>統括AIが作業を継続中</small>';log(paused?"統括AI：一時停止":"統括AI：作業を再開")}
+function newProject(){const v=prompt("新しいプロジェクト名を入力してください","節約・家計の新規プロジェクト");if(v){localStorage.setItem("ai_workroom_project",v);document.getElementById("live").innerHTML='AI作業室 LIVE <small>'+v+'</small>';log("新規プロジェクト："+v);start()}}
+function openManager(){renderTeam();document.getElementById("managerModal").classList.add("show");document.getElementById("managerModal").setAttribute("aria-hidden","false")}
+function closeManager(){document.getElementById("managerModal").classList.remove("show");document.getElementById("managerModal").setAttribute("aria-hidden","true")}
+function dispatch(){const v=document.getElementById("instruction").value.trim();if(!v){toast("統括AIへの指示を入力してください");return}localStorage.setItem("ai_workroom_instruction",v);log("統括AI：指示を受領 → 全担当へ自動配分");toast("統括AIが全担当へ配分しました");start();renderTeam()}
+function openSettings(){const offline=navigator.onLine?"オンライン":"オフライン";toast("PWA状態："+offline+" / 指示は統括AIに集約")}
+window.addEventListener("load",()=>{if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});const saved=localStorage.getItem("ai_workroom_project");if(saved)document.getElementById("live").innerHTML='AI作業室 LIVE <small>'+saved+'</small>';renderTeam();start();});
+</script>
+</body></html>
