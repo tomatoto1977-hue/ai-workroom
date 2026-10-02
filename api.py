@@ -37,6 +37,10 @@ class RunRequest(BaseModel):
     project: str = "AI作業室"
     max_output_tokens: int = 700
 
+@app.get("/")
+async def root():
+    return {"ok": True, "service": "ai-workroom-api", "health": "/health"}
+
 @app.get("/health")
 async def health():
     return {"ok": True, "service": "ai-workroom-api", "openai_configured": bool(API_KEY), "model": MODEL}
@@ -62,8 +66,22 @@ async def orchestrate(req: RunRequest):
     if not req.instruction.strip():
         return {"ok": False, "error": "instruction is required"}
     if not client:
+        simulated = [
+            ("市場調査AI", "対象読者の悩みと検索意図を整理し、需要確認項目を抽出しました。"),
+            ("競争戦略AI", "競合との差別化軸と、誤解を招かない訴求ポイントを整理しました。"),
+            ("情報収集AI", "必要な一次情報・数値・根拠の確認項目を整理しました。"),
+            ("予算AI", "制作・運用コストと収益化の前提を確認しました。"),
+            ("企画AI", "調査結果を統合し、次工程へ渡せる企画案に整理しました。"),
+            ("文章化AI", "企画を読者に伝わる構成へ文章化しました。"),
+            ("動画制作AI", "動画化するための尺・構成・素材案を整理しました。"),
+            ("編集AI", "字幕・テンポ・編集条件を整理しました。"),
+            ("実装AI", "次に必要な実装作業と受け渡し条件を整理しました。"),
+            ("エビデンスAI", "根拠不足や要確認表現を点検する項目を整理しました。"),
+            ("統括AI", "各担当の成果を統合し、次工程へ渡す準備を整えました。"),
+        ]
         return {"ok": True, "mode": "simulation", "openai_configured": False,
-                "message": "APIキー未設定。フロントエンドの安全なシミュレーションを継続します。", "results": []}
+                "message": "APIキー未設定。料金の発生しない安全なシミュレーションです。",
+                "results": [{"role": role, "status": "simulated", "text": text} for role, text in simulated]}
     # Independent research/strategy work starts in parallel, then downstream work receives their outputs.
     first = await asyncio.gather(
         ask(*ROLES[1], req.instruction, req.project, req.max_output_tokens),
