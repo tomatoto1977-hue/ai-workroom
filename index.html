@@ -167,7 +167,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
    }
    if(data.mode==='openai'){
      log('統括AI：実AI処理が完了。各担当の成果を受領');
-     playWorkflow(data);
+     await playWorkflow(data);
      data.results.forEach(item=>{
        if(item.status==='completed'){
          const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);
@@ -203,7 +203,8 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      render();
    }else{
      log('AI API：未設定。料金の発生しない安全なシミュレーションを継続');
-     playWorkflow(data);
+     document.getElementById('managerTask').textContent='指示を受領。シミュレーション工程を開始します';
+     await playWorkflow(data);
      document.getElementById('managerTask').textContent='シミュレーション完了：API接続後に実AI品質判定へ';
      state.score=Math.min(94,Math.max(state.score,82));
      render();
