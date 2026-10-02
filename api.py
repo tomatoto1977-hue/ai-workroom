@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 
-app = FastAPI(title="AI Workroom API", version="1.0.0")
+app = FastAPI(title="AI Workroom API", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://ai-workroom.onrender.com"],
@@ -39,11 +39,12 @@ class RunRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"ok": True, "service": "ai-workroom-api", "health": "/health"}
+    return {"ok": True, "service": "ai-workroom-api", "version": "1.1.0", "health": "/health"}
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "ai-workroom-api", "openai_configured": bool(API_KEY), "model": MODEL}
+    return {"ok": True, "service": "ai-workroom-api", "version": "1.1.0",
+            "openai_configured": bool(API_KEY), "model": MODEL}
 
 async def ask(role: str, job: str, instruction: str, context: str, max_output_tokens: int) -> dict[str, Any]:
     if not client:
@@ -51,7 +52,7 @@ async def ask(role: str, job: str, instruction: str, context: str, max_output_to
     prompt = f"""あなたはAI作業室の{role}です。
 役割: {job}
 ユーザー指示: {instruction}
-プロジェクト: {context}
+プロジェクトと前工程の情報: {context}
 他担当と重複しすぎず、自分の担当成果を簡潔に作成してください。
 不確かな事実は断定せず、確認が必要なら明記してください。
 出力は日本語で、次工程へ渡せる実務的な内容にしてください。"""
@@ -61,28 +62,41 @@ async def ask(role: str, job: str, instruction: str, context: str, max_output_to
     except Exception as e:
         return {"role": role, "status": "error", "text": str(e)[:300]}
 
+def result(role: str, text: str, status: str = "simulated", stage: str = "") -> dict[str, Any]:
+    return {"role": role, "status": status, "stage": stage, "text": text}
+
 @app.post("/api/orchestrate")
 async def orchestrate(req: RunRequest):
     if not req.instruction.strip():
         return {"ok": False, "error": "instruction is required"}
+
     if not client:
-        simulated = [
-            ("市場調査AI", "対象読者の悩みと検索意図を整理し、需要確認項目を抽出しました。"),
-            ("競争戦略AI", "競合との差別化軸と、誤解を招かない訴求ポイントを整理しました。"),
-            ("情報収集AI", "必要な一次情報・数値・根拠の確認項目を整理しました。"),
-            ("予算AI", "制作・運用コストと収益化の前提を確認しました。"),
-            ("企画AI", "調査結果を統合し、次工程へ渡せる企画案に整理しました。"),
-            ("文章化AI", "企画を読者に伝わる構成へ文章化しました。"),
-            ("動画制作AI", "動画化するための尺・構成・素材案を整理しました。"),
-            ("編集AI", "字幕・テンポ・編集条件を整理しました。"),
-            ("実装AI", "次に必要な実装作業と受け渡し条件を整理しました。"),
-            ("エビデンスAI", "根拠不足や要確認表現を点検する項目を整理しました。"),
-            ("統括AI", "各担当の成果を統合し、次工程へ渡す準備を整えました。"),
+        stages = [
+            ("調査", ["市場調査AI", "競争戦略AI", "情報収集AI", "予算AI"],
+             "需要・競合・根拠・コストの確認項目を整理しました。"),
+            ("企画", ["企画AI"],
+             "調査結果を統合し、次工程へ渡す企画案を整理しました。"),
+            ("制作", ["文章化AI", "動画制作AI"],
+             "企画を記事・台本・動画構成へ展開しました。"),
+            ("品質確認", ["エビデンスAI", "編集AI"],
+             "根拠、表現、字幕、テンポ、完成条件を点検しました。"),
+            ("実装", ["実装AI"],
+             "次に必要な実装作業と受け渡し条件を整理しました。"),
+            ("統括", ["統括AI"],
+             "各工程の成果を統合し、次工程へ渡す準備を整えました。"),
         ]
-        return {"ok": True, "mode": "simulation", "openai_configured": False,
-                "message": "APIキー未設定。料金の発生しない安全なシミュレーションです。",
-                "results": [{"role": role, "status": "simulated", "text": text} for role, text in simulated]}
-    # Independent research/strategy work starts in parallel, then downstream work receives their outputs.
+        results = []
+        for stage, names, text_value in stages:
+            for name in names:
+                results.append(result(name, text_value, stage=stage))
+        return {
+            "ok": True, "mode": "simulation", "openai_configured": False,
+            "message": "APIキー未設定。料金の発生しない安全なシミュレーションです。",
+            "workflow": [{"stage": s, "roles": names} for s, names, _ in stages],
+            "gate": {"target": 95, "passed": False, "reason": "実AI品質判定はAPI接続後に実行"},
+            "results": results,
+        }
+
     first = await asyncio.gather(
         ask(*ROLES[1], req.instruction, req.project, req.max_output_tokens),
         ask(*ROLES[2], req.instruction, req.project, req.max_output_tokens),
@@ -98,7 +112,21 @@ async def orchestrate(req: RunRequest):
         ask(*ROLES[10], req.instruction, context, req.max_output_tokens),
     )
     all_context = context + "\n\n" + "\n\n".join(f"{x['role']}: {x['text']}" for x in downstream)
-    manager = await ask(*ROLES[0], req.instruction, all_context, req.max_output_tokens)
-    evidence = await ask(*ROLES[7], req.instruction, all_context, req.max_output_tokens)
-    return {"ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
-            "results": first + downstream + [evidence, manager]}
+    evidence, manager = await asyncio.gather(
+        ask(*ROLES[7], req.instruction, all_context, req.max_output_tokens),
+        ask(*ROLES[0], req.instruction, all_context, req.max_output_tokens),
+    )
+    results = first + downstream + [evidence, manager]
+    return {
+        "ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
+        "workflow": [
+            {"stage": "調査", "roles": ["市場調査AI", "競争戦略AI", "情報収集AI", "予算AI"]},
+            {"stage": "企画", "roles": ["企画AI"]},
+            {"stage": "制作", "roles": ["文章化AI", "動画制作AI"]},
+            {"stage": "品質確認", "roles": ["エビデンスAI", "編集AI"]},
+            {"stage": "実装", "roles": ["実装AI"]},
+            {"stage": "統括", "roles": ["統括AI"]},
+        ],
+        "gate": {"target": 95, "passed": all(x["status"] == "completed" for x in results)},
+        "results": results,
+    }
