@@ -53,6 +53,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <div class="thought" id="thought"></div>
 </main></div>
 <script>
+const API_URL='https://ai-workroom-api.onrender.com';
 const roles=[
  ['調査AI','市場データ・根拠を収集'],['企画AI','競争戦略を反映して企画'],['台本AI','視聴者向けに文章化'],['チェックAI','事実・表現・品質を確認'],['編集AI','動画構成・編集を仕上げ']
 ];
@@ -118,12 +119,24 @@ function tick(){
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
-function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;
+async function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;
  state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
  log('統括AI：ユーザー指示を受領 → 各担当へ分担');
  roles.forEach((r,i)=>{if(state.phases[i]==='done')state.progress[i]=Math.min(state.progress[i],95); if(i===0)state.phases[i]='working'; else if(state.phases[i]!=='working')state.phases[i]=i===1?'thinking':'waiting';});
- log('調査AI：調査を開始');log('企画AI：競争戦略を検討');log('台本AI・チェックAI・編集AI：順次受領待ち');
- x.value='';start();render();}
+ log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
+ x.value='';start();render();
+ try{
+   const r=await fetch(API_URL+'/api/orchestrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,project:'AI作業室',max_output_tokens:700})});
+   const data=await r.json();
+   if(data.mode==='openai'){
+     log('統括AI：実AI処理が完了。各担当の成果を受領');
+     data.results.forEach(item=>{if(item.status==='completed')log(item.role+'：成果を次工程へ引き渡し');});
+     document.getElementById('managerTask').textContent='実AI処理完了：成果を確認・統合中';
+     state.score=Math.max(state.score,95);render();
+   }else{
+     log('AI API：未設定のため安全な画面シミュレーションを継続');
+   }
+ }catch(e){log('AI API：接続待ち。画面シミュレーションを継続');}
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 render();start();
