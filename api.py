@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-sol")
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 client = AsyncOpenAI(api_key=API_KEY) if API_KEY else None
 
