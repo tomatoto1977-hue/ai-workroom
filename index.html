@@ -31,8 +31,14 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <body>
 <div class="shell"><main class="artboard" id="board">
 <img class="reference" src="./visual-reference.svg" alt="AI作業室">
-<div class="panel project"><strong>現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">全体 50%</span></div>
-<div class="agents" id="agents"></div>
+<div class="panel project"><strong>現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">全体 45%</span></div>
+<div class="agents" id="agents">
+<div class="panel agent" data-i="0"><b>調査AI <span class="score">70%</span></b><small>作業中… 市場データ・根拠を収集</small><div class="bar"><i></i></div></div>
+<div class="panel agent" data-i="1"><b>企画AI <span class="score">45%</span></b><small>考え中… 競争戦略を反映</small><div class="bar"><i></i></div></div>
+<div class="panel agent" data-i="2"><b>台本AI <span class="score">60%</span></b><small>作業中… 視聴者向けに文章化</small><div class="bar"><i></i></div></div>
+<div class="panel agent" data-i="3"><b>チェックAI <span class="score">30%</span></b><small>待機中… 受け渡し待ち</small><div class="bar"><i></i></div></div>
+<div class="panel agent" data-i="4"><b>編集AI <span class="score">20%</span></b><small>作業中… 動画構成・編集</small><div class="bar"><i></i></div></div>
+</div>
 <div class="panel manager"><b>統括AI</b><span class="quality" id="quality">品質 82点</span><small id="managerTask">市場調査と競争戦略を確認中</small></div>
 <div class="panel log"><h3>作業ログ</h3><div id="log"><div>10:27　調査AI：市場データを確認中</div><div>10:27　企画AI：企画案を検討中</div><div>10:27　台本AI：台本を作成中</div><div>10:27　チェックAI：受け渡し待ち</div><div>10:27　編集AI：編集作業中</div></div></div>
 <div class="panel gate"><b>品質ゲート</b><strong id="gateScore">82点</strong></div>
@@ -63,14 +69,12 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
 function renderAgents(){
- const el=document.getElementById('agents');
- if(!el)return;
- el.innerHTML='';
- roles.forEach((r,i)=>{
-   const d=document.createElement('div');
+ document.querySelectorAll('#agents .agent').forEach((d,i)=>{
+   if(!roles[i]) return;
    d.className='panel agent '+(state.phases[i]==='working'?'active':'');
-   d.innerHTML='<b>'+r[0]+' <span class="score">'+state.progress[i]+'%</span></b><small>'+phaseText[state.phases[i]]+' '+r[1]+'</small><div class="bar"><i style="width:'+state.progress[i]+'%;background:#8b6a57"></i></div>';
-   el.appendChild(d);
+   d.querySelector('.score').textContent=state.progress[i]+'%';
+   d.querySelector('small').textContent=phaseText[state.phases[i]]+' '+roles[i][1];
+   d.querySelector('.bar i').style.width=state.progress[i]+'%';
  });
 }
 function log(msg){logs.unshift(new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+'　'+msg);logs=logs.slice(0,9);document.getElementById('log').innerHTML=logs.map(x=>'<div>'+x+'</div>').join('');}
@@ -122,5 +126,5 @@ function send(){const x=document.getElementById('instruction');if(!x.value.trim(
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 render();start();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js?v=17').catch(()=>{});</script>
+if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{}); }</script>
 </body></html>
