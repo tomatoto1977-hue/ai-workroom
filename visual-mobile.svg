@@ -120,6 +120,33 @@
  <path d="M627 855Q666 842 705 855" stroke="#c18b5d" stroke-width="4"/>
 </g>
 
+<!-- target-style office decor -->
+<g opacity=".9">
+ <rect x="128" y="120" width="105" height="95" rx="10" fill="#f7eee5" stroke="#b98d6e" stroke-width="4"/>
+ <path d="M145 195L185 150L215 184L232 165" fill="none" stroke="#c98c68" stroke-width="5"/>
+ <circle cx="175" cy="148" r="10" fill="#dfb09d"/><circle cx="211" cy="136" r="9" fill="#a9c49b"/>
+ <rect x="516" y="125" width="100" height="92" rx="10" fill="#f7eee5" stroke="#b98d6e" stroke-width="4"/>
+ <path d="M530 196Q562 150 595 196" fill="none" stroke="#91ae87" stroke-width="7"/>
+ <circle cx="558" cy="151" r="10" fill="#e2b57d"/>
+</g>
+<g fill="#fff1c9" opacity=".8">
+ <circle cx="275" cy="240" r="10"/><circle cx="474" cy="235" r="10"/>
+</g>
+<!-- books and desk plants -->
+<g stroke="#74503d" stroke-width="3">
+ <rect x="135" y="770" width="52" height="10" rx="3" fill="#dba3a0"/><rect x="141" y="758" width="46" height="10" rx="3" fill="#9db69a"/>
+ <rect x="513" y="770" width="52" height="10" rx="3" fill="#dcae72"/><rect x="519" y="758" width="46" height="10" rx="3" fill="#b08bb0"/>
+</g>
+<g stroke="#6e9565" stroke-width="5" stroke-linecap="round" fill="none">
+ <path d="M165 770V738M165 752L147 738M165 749L181 734"/>
+ <path d="M585 770V738M585 752L567 738M585 749L601 734"/>
+</g>
+<g fill="#8caf7d"><ellipse cx="147" cy="738" rx="13" ry="7"/><ellipse cx="181" cy="734" rx="13" ry="7"/><ellipse cx="567" cy="738" rx="13" ry="7"/><ellipse cx="601" cy="734" rx="13" ry="7"/></g>
+<!-- role plaques -->
+<g font-family="sans-serif" font-weight="700" text-anchor="middle">
+ <g fill="#fffaf4" stroke="#9b7256" stroke-width="3"><rect x="50" y="1048" width="110" height="34" rx="10"/><rect x="195" y="1048" width="110" height="34" rx="10"/><rect x="340" y="1048" width="110" height="34" rx="10"/><rect x="485" y="1048" width="110" height="34" rx="10"/><rect x="630" y="1048" width="110" height="34" rx="10"/></g>
+ <g fill="#654a3b" font-size="15"><text x="105" y="1070">調査AI</text><text x="250" y="1070">企画AI</text><text x="395" y="1070">台本AI</text><text x="540" y="1070">チェックAI</text><text x="685" y="1070">編集AI</text></g>
+</g>
 <!-- handoff papers -->
 <g class="paper" fill="#fffdf7" stroke="#c59469" stroke-width="4">
  <rect x="124" y="805" width="36" height="28" rx="4" transform="rotate(8 142 819)"/>
