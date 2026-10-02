@@ -97,6 +97,26 @@ async def orchestrate(req: RunRequest):
     if not req.instruction.strip():
         return {"ok": False, "error": "instruction is required"}
 
+    # Final legal-review mode: one compact call only, or a deterministic checklist without API.
+    if "最終リーガルチェック" in req.project or "最終リーガルチェック" in req.instruction:
+        target = req.instruction.split("【対象成果物】", 1)[-1].strip()
+        if client:
+            prompt = f"""公開前のAI一次チェックです。法的助言ではありません。
+次の成果物について、重大な懸念/要修正/要確認を各1〜3点以内で簡潔に整理してください。
+観点: 事実・数値、著作権/商標/画像、個人情報、消費者向け表示、専門領域の断定、誹謗中傷、規約。
+成果物:\n{target[:7000]}"""
+            try:
+                rr = await client.responses.create(model=MODEL, input=prompt, max_output_tokens=min(req.max_output_tokens, 300))
+                legal_text = rr.output_text.strip()
+                return {"ok": True, "mode": "openai", "openai_configured": True, "model": MODEL,
+                        "token_strategy": "最終リーガル確認はAI 1回のみ。",
+                        "results": [{"role": "統括AI", "status": "completed", "stage": "最終リーガルチェック", "text": legal_text}]}
+            except Exception:
+                pass
+        return {"ok": True, "mode": "local_template", "openai_configured": bool(client),
+                "results": [{"role": "統括AI", "status": "simulated", "stage": "最終リーガルチェック",
+                             "text": "重大な懸念の自動判定は未実施。事実・数値・料金、画像/引用の権利、個人情報、表示の誤認、専門領域の断定、誹謗中傷、利用規約を人間が公開前に確認してください。"}]}
+
     base = template_pack(req.instruction)
     draft = pack_text(base)
     refined = await refine(req.instruction, draft, req.max_output_tokens)
