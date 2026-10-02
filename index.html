@@ -79,7 +79,7 @@ const roles=[
 const positions=[
  {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
 ];
-let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false;
+let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false,apiOnline=false,apiConfigured=false;
 const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
@@ -163,7 +163,8 @@ async function playWorkflow(data){
    log(g.stage+'工程：'+g.roles.join('・')+' が受領して作業開始');
    render();
    await new Promise(r=>setTimeout(r,900));
-   g.cards.forEach(i=>{state.progress[i]=100;state.phases[i]='done';});
+   const passed=!!data.gate?.passed;
+   g.cards.forEach(i=>{state.progress[i]=passed?100:Math.min(94,Math.max(state.progress[i],94));state.phases[i]=passed?'done':'thinking';});
    const matching=results.filter(x=>g.roles.includes(x.role));
    matching.forEach(x=>{if(x.status==='completed')log(x.role+'：成果を完了し次工程へ引き渡し');});
    const rechecks=results.filter(x=>x.stage==='改善・再点検');
@@ -175,6 +176,7 @@ async function playWorkflow(data){
  }
  workflowRunning=false; apiDriven=false;
  state.score=(typeof data.gate?.score==='number')?data.gate.score:(data.gate?.passed?95:Math.min(state.score,94));
+ state.quality=state.quality.map(()=>state.score);
  document.getElementById('managerTask').textContent=data.gate?.passed?'品質95点合格：最終成果を統括AIへ':'工程完了：品質'+state.score+'点。改善・再点検が必要';
  log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
  render();
@@ -235,18 +237,36 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      }
      render();
    }else{
-     log('AI API：未設定。料金の発生しない安全なシミュレーションを継続');
-     document.getElementById('managerTask').textContent='指示を受領。シミュレーション工程を開始します';
+     log('AI API：現在はシミュレーションモード。実AIの品質判定はAPIキー設定後に実行');
+     document.getElementById('managerTask').textContent='指示を受領。安全なシミュレーション工程を開始します';
      await playWorkflow(data);
-     document.getElementById('managerTask').textContent='工程100%：品質'+state.score+'点。API接続後に実AI品質判定・改善へ';
+     document.getElementById('managerTask').textContent='シミュレーション工程完了。品質'+state.score+'点。実AI品質判定にはAPI接続が必要です';
      state.score=Math.min(94,Math.max(state.score,82));
+     state.quality=state.quality.map(()=>state.score);
      render();
    }
  }catch(e){log('AI API：接続待ち。画面シミュレーションを継続');document.getElementById('managerTask').textContent='接続を確認できませんでした。もう一度お試しください';}
  finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
 }
+async function checkApi(){
+ try{
+  const r=await fetch(API_URL+'/health',{cache:'no-store'});
+  const d=await r.json();
+  apiOnline=!!d.ok; apiConfigured=!!d.openai_configured;
+  if(apiOnline&&apiConfigured){
+   document.getElementById('status').textContent='● LIVE　実AI接続済み・統括AIが全工程を管理';
+   log('AI API：接続済み。実AIモードで稼働可能（'+(d.model||'モデル')+'）');
+  }else if(apiOnline){
+   document.getElementById('status').textContent='● LIVE　安全なシミュレーション中（実AI APIキー待ち）';
+   log('AI API：サーバー接続済み。OPENAI_API_KEY設定待ち');
+  }
+ }catch(e){
+  apiOnline=false; apiConfigured=false;
+  document.getElementById('status').textContent='● LIVE　API接続確認中';
+ }
+}
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
-render();start();
+render();start();checkApi();
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=39').then(()=>navigator.serviceWorker.ready).then(()=>navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()))).catch(()=>{}); }</script>
 </body></html>
