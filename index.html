@@ -16,7 +16,7 @@ body{min-height:100vh}.shell{min-height:100vh;display:flex;justify-content:cente
 .reference{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:fill}.panel,.control,.status{opacity:0;pointer-events:none}
 button,input{font:inherit}.hot{position:absolute;border:0;background:transparent;cursor:pointer;border-radius:12px}
 .new{left:61%;top:3%;width:9%;height:6.5%}.pause{left:70%;top:3%;width:8%;height:6.5%}.settings{left:78.5%;top:3%;width:9%;height:6.5%}
-.panel{position:absolute;background:rgba(255,255,255,.95);border:2px solid rgba(205,169,139,.8);box-shadow:0 5px 16px rgba(80,55,40,.12);border-radius:16px;backdrop-filter:blur(3px)}
+.dynamic-agents{position:absolute;inset:0;pointer-events:none;z-index:4}.dyn-card{position:absolute;width:13.5%;min-height:5.8%;padding:5px 7px;background:rgba(255,255,255,.94);border:2px solid #d5b49a;border-radius:14px;box-shadow:0 4px 14px rgba(70,45,30,.14);font-size:9px;transition:transform .5s}.dyn-card.active{transform:translateY(-3px)}.dyn-card b{display:block;font-size:10px}.dyn-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0}.dyn-card .mini-bar{height:4px;background:#eadfd5;border-radius:5px;overflow:hidden}.dyn-card .mini-bar i{display:block;height:100%;background:#8b6a57;transition:width .4s}.thought{position:absolute;left:45%;top:48%;display:none;z-index:7;padding:7px 11px;background:#fff;border:2px solid #d8c1ae;border-radius:18px;font-weight:800;font-size:11px;box-shadow:0 5px 18px rgba(0,0,0,.14)}.handoff-layer{position:absolute;inset:0;pointer-events:none;z-index:6}.doc{position:absolute;width:24px;height:18px;border-radius:4px;background:#fff;border:2px solid #8b6a57;box-shadow:0 2px 6px rgba(0,0,0,.18);transform:translate(-50%,-50%);font-size:9px;text-align:center;line-height:14px;transition:left 1.2s ease-in-out,top 1.2s ease-in-out}.panel{position:absolute;background:rgba(255,255,255,.95);border:2px solid rgba(205,169,139,.8);box-shadow:0 5px 16px rgba(80,55,40,.12);border-radius:16px;backdrop-filter:blur(3px)}
 .project{left:29%;top:10.8%;width:40%;padding:9px 14px}.project strong{font-size:14px}.project span{float:right;font-size:12px;color:#7b6a60}
 .agents{position:absolute;left:5%;right:16.5%;top:39%;display:grid;grid-template-columns:repeat(5,1fr);gap:1.4%}
 .agent{min-width:0;padding:7px 9px}.agent b{font-size:12px}.agent small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 5px;color:#75645b}.bar{height:6px;background:#eadfd5;border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:9px;transition:width .35s}.score{float:right;font-size:11px;font-weight:800}
@@ -24,6 +24,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .log{position:absolute;right:1.8%;top:12.8%;width:11.4%;height:52%;padding:7px;overflow:hidden}.log h3{font-size:13px;margin:0 0 5px}.log div{font-size:9px;line-height:1.45;padding:3px 0;border-bottom:1px dashed #e7d8cb}.gate{position:absolute;right:1.8%;bottom:20.5%;width:11.4%;padding:7px;text-align:center}.gate b{font-size:11px}.gate strong{display:block;font-size:20px;color:#d18d39}.toast{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);display:none;z-index:5;min-width:220px;max-width:70%;padding:12px 15px;background:#fff;border:2px solid #d4b196;border-radius:16px;box-shadow:0 12px 35px rgba(0,0,0,.16);text-align:center;font-size:13px}
 .control{position:absolute;left:32%;bottom:1.7%;width:36%;display:flex;gap:6px}.control input{flex:1;border:1px solid #d9c6b7;border-radius:18px;padding:7px 10px;background:rgba(255,255,255,.95);outline:none;font-size:11px}.control button{border:0;border-radius:18px;padding:7px 12px;background:#8b6a57;color:white;font-weight:800;font-size:11px}
 .status{position:absolute;left:1.7%;bottom:1.7%;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.95);font-size:10px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.dyn-card{font-size:5px;padding:2px 3px;border-width:1px;border-radius:7px}.dyn-card b{font-size:5.5px}.dyn-card small{margin:1px 0}.dyn-card .mini-bar{height:2px}.thought{font-size:6px;padding:3px 5px;border-width:1px}.doc{width:13px;height:10px;font-size:5px;line-height:7px;border-width:1px}
 @media(max-width:700px){.shell{padding:0}.artboard{width:100vw;height:66.6667vw;aspect-ratio:3/2;border-radius:0;box-shadow:none}.project{font-size:8px;padding:4px 6px}.project strong{font-size:8px}.project span{font-size:7px}.agents{top:39.5%;left:5%;right:17%}.agent{padding:3px 4px;border-radius:8px}.agent b{font-size:6.5px}.agent small{font-size:5.5px;margin:1px 0 2px}.bar{height:3px}.score{font-size:5.5px}.manager{font-size:6px;padding:4px 6px}.manager b{font-size:7px}.manager small{font-size:5px}.log{padding:3px}.log h3{font-size:7px;margin:0}.log div{font-size:4.5px}.gate{padding:3px}.gate b{font-size:5.5px}.gate strong{font-size:10px}.control{left:31%;width:37%;bottom:1.2%}.control input{font-size:6px;padding:4px 6px}.control button{font-size:6px;padding:4px 7px}.status{font-size:5.5px;padding:3px 5px}}
 </style>
 </head>
@@ -41,36 +42,78 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <button class="hot new" aria-label="新規プロジェクト" onclick="newProject()"></button>
 <button class="hot pause" aria-label="一時停止・再開" onclick="togglePause()"></button>
 <button class="hot settings" aria-label="設定" onclick="showToast('設定：95点ゲート／手動承認／外部投稿OFF')"></button>
+<div class="dynamic-agents" id="dynamicAgents"></div>
+<div class="handoff-layer" id="handoffLayer"></div>
+<div class="thought" id="thought"></div>
 </main></div>
 <script>
 const roles=[
  ['調査AI','市場データ・根拠を収集'],['企画AI','競争戦略を反映して企画'],['台本AI','視聴者向けに文章化'],['チェックAI','事実・表現・品質を確認'],['編集AI','動画構成・編集を仕上げ']
 ];
-let paused=false,cycle=0,timer=null,logs=[];
-const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{score:70,progress:[0,0,0,0,0],instruction:'節約・家計ショート動画'};
+const positions=[
+ {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
+];
+let paused=false,timer=null,logs=[];
+const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
+ score:82,progress:[70,45,60,30,20],
+ phases:['working','thinking','working','waiting','working'],
+ delivered:[false,false,false,false,false],
+ instruction:'節約・家計ショート動画'
+};
+const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
+const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
 function renderAgents(){
- const el=document.getElementById('agents'); el.innerHTML='';
- roles.forEach((r,i)=>{const d=document.createElement('div');d.className='panel agent';d.innerHTML='<b>'+r[0]+' <span class="score" id="s'+i+'">'+state.progress[i]+'%</span></b><small>'+r[1]+'</small><div class="bar"><i id="b'+i+'"></i></div>';el.appendChild(d)});
- roles.forEach((_,i)=>{document.getElementById('b'+i).style.width=state.progress[i]+'%';});
+ const el=document.getElementById('dynamicAgents');el.innerHTML='';
+ roles.forEach((r,i)=>{
+   const d=document.createElement('div');d.className='dyn-card '+(state.phases[i]==='working'?'active':'');
+   d.style.left=positions[i].x+'%';d.style.top=(positions[i].y-8)+'%';
+   d.innerHTML='<b>'+r[0]+' <span style="float:right">'+state.progress[i]+'%</span></b><small>'+phaseText[state.phases[i]]+' '+r[1]+'</small><div class="mini-bar"><i style="width:'+state.progress[i]+'%"></i></div>';
+   el.appendChild(d);
+ });
 }
-function log(msg){logs.unshift(new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+'　'+msg);logs=logs.slice(0,7);document.getElementById('log').innerHTML=logs.map(x=>'<div>'+x+'</div>').join('');}
-function render(){renderAgents();const avg=Math.round(state.progress.reduce((a,b)=>a+b,0)/5);document.getElementById('overall').textContent='全体 '+avg+'%';document.getElementById('quality').textContent='品質 '+state.score+'点';document.getElementById('gateScore').textContent=state.score+'点';localStorage.setItem('aiworkroom_state',JSON.stringify(state));}
+function log(msg){logs.unshift(new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+'　'+msg);logs=logs.slice(0,9);document.getElementById('log').innerHTML=logs.map(x=>'<div>'+x+'</div>').join('');}
+function render(){
+ renderAgents();
+ const avg=Math.round(state.progress.reduce((a,b)=>a+b,0)/5);
+ document.getElementById('overall').textContent='全体 '+avg+'%';
+ document.getElementById('quality').textContent='品質 '+state.score+'点';
+ document.getElementById('gateScore').textContent=state.score+'点';
+ localStorage.setItem('aiworkroom_state',JSON.stringify(state));
+}
+function moveDocument(from,to,label){
+ const layer=document.getElementById('handoffLayer'),d=document.createElement('div');d.className='doc';d.textContent='📄';d.style.left=positions[from].x+'%';d.style.top=positions[from].y+'%';layer.appendChild(d);
+ requestAnimationFrame(()=>{d.style.left=positions[to].x+'%';d.style.top=positions[to].y+'%';});
+ setTimeout(()=>d.remove(),1400);
+ log(roles[from][0]+' → '+roles[to][0]+'：'+label);
+}
 function tick(){
- if(paused)return; cycle++;
- const active=Math.min(4,Math.floor(cycle/12));
- state.progress=state.progress.map((v,i)=>i<active?v+Math.min(4,100-v):i===active?Math.min(100,v+3):v);
- if(cycle>58)state.score=Math.min(95,state.score+1);
- if(cycle%5===0)log(roles[Math.min(active,4)][0]+'：工程を改善中');
- if(state.score>=95){document.getElementById('managerTask').textContent='95点ゲート通過。次工程へ引き渡し準備完了';log('統括AI：95点ゲートを通過');clearInterval(timer);}
+ if(paused)return;
+ roles.forEach((r,i)=>{
+   if(state.phases[i]==='waiting'){
+     if(i===0 || state.delivered[i]) state.phases[i]='working';
+   } else if(state.phases[i]==='thinking'){
+     if(Math.random()<.38) state.phases[i]='working';
+   } else if(state.phases[i]==='working'){
+     state.progress[i]=Math.min(100,state.progress[i]+(i===0?2:1+Math.floor(Math.random()*3)));
+     if(Math.random()<.13) state.phases[i]='thinking';
+     if(state.progress[i]>=100){
+       state.phases[i]='done';
+       if(i<4){state.delivered[i]=true;moveDocument(i,i+1,'資料を持って席を立ち、引き渡し');state.phases[i+1]='waiting';}
+       else log('編集AI：最終成果物を統括AIへ返却');
+     }
+   }
+ });
+ if(Math.random()<.18) log(roles[Math.floor(Math.random()*5)][0]+'：'+phaseLog[state.phases[Math.floor(Math.random()*5)]]);
+ if(state.score<95 && Math.random()<.12)state.score++;
+ if(state.score>=95) log('統括AI：品質95点以上を確認');
  render();
 }
-function start(){if(timer)clearInterval(timer);timer=setInterval(tick,700);log('統括AI：全工程を開始');render();}
-function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　統括AIが全工程を管理';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
-function newProject(){state.progress=[0,0,0,0,0];state.score=70;cycle=0;logs=[];log('統括AI：新規プロジェクトを開始');start();}
+function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);log('統括AI：5人を非同期で稼働開始');render();}
+function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
+function newProject(){state.progress=[0,0,0,0,0];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 function send(){const x=document.getElementById('instruction');if(!x.value.trim())return;state.instruction=x.value.trim();document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';log('統括AI：ユーザー指示を受領');x.value='';start();render();}
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('instruction').addEventListener('keydown',e=>{if(e.key==='Enter')send()});
 render();start();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-</script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
 </body></html>
