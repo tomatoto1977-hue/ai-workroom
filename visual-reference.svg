@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 900">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 95 1350 805">
 <defs>
  <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#fffdf9"/><stop offset=".72" stop-color="#f8f1e8"/><stop offset="1" stop-color="#eee2d5"/></linearGradient>
  <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#c99b73"/><stop offset="1" stop-color="#a97650"/></linearGradient>
