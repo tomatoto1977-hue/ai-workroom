@@ -327,7 +327,8 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
  log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
  x.value='';start();render();
  try{
-   const r=await fetch(API_URL+'/api/orchestrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,project:'AI作業室',max_output_tokens:700})});
+   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700'});
+   const r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store'});
    const data=await r.json();
    if(data.workflow){
      data.workflow.forEach(w=>log(w.stage+'工程：'+w.roles.join('・')+' が担当'));
