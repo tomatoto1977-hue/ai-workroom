@@ -515,9 +515,19 @@ async function renderCompletedVideo(data){
    v.style.display='block'; if(empty)empty.style.display='none';
    document.getElementById('previewText').textContent='完成動画をiPhoneへ読み込んでいます…';
    try{
-     const vr=await fetch(videoUrl,{cache:'no-store'});
-     if(!vr.ok) throw new Error('video HTTP '+vr.status);
-     const blob=await vr.blob();
+     let blob=null;
+     if(x.video_base64){
+       // API応答に同梱されたMP4本体を直接Blob化。Renderの一時ファイル再取得に依存しない。
+       const bin=atob(x.video_base64);
+       const bytes=new Uint8Array(bin.length);
+       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+       blob=new Blob([bytes],{type:x.video_mime||'video/mp4'});
+       log('動画制作AI：完成MP4本体をAPI応答からiPhoneへ取り込みました');
+     }else{
+       const vr=await fetch(videoUrl,{cache:'no-store'});
+       if(!vr.ok) throw new Error('video HTTP '+vr.status);
+       blob=await vr.blob();
+     }
      if(!blob.size) throw new Error('empty video');
      if(state.videoBlobUrl && state.videoBlobUrl.startsWith('blob:')) URL.revokeObjectURL(state.videoBlobUrl);
      const blobUrl=URL.createObjectURL(blob);
@@ -527,11 +537,11 @@ async function renderCompletedVideo(data){
      const openLink=document.getElementById('videoOpenLink');
      if(openLink){openLink.href=blobUrl;openLink.style.display='inline';}
    }catch(fetchError){
-     // Blob化に失敗した場合は従来の直接URLを残し、再試行できるようにする。
+     // 念のため旧URL方式へフォールバック。
      v.src=videoUrl;
      const openLink=document.getElementById('videoOpenLink');
      if(openLink){openLink.href=videoUrl;openLink.style.display='inline';}
-     log('動画制作AI：iPhoneへのBlob取り込みに失敗 → 直接再生へフォールバック');
+     log('動画制作AI：直接MP4取り込みに失敗 → 旧URL再生へフォールバック');
    }
    state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
    document.getElementById('resultBadge').textContent=x.audio_embedded?'MP4完成・ナレーション付き':'MP4完成・確認待ち';
