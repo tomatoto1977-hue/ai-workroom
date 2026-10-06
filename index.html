@@ -407,13 +407,27 @@ async function reviseFromRequest(){
    const data=await r.json();
    if(!data.ok) throw new Error(data.error||'revision failed');
    if(data.revised_artifact) state.artifact=data.revised_artifact;
-   state.revisionRound=(state.revisionRound||0)+1;
+   // 変更要望を実際のMP4へ反映した再レンダリング結果を受領する。
+   if(data.video?.video_url){
+     const v=document.getElementById('completedVideo');
+     if(v){
+       v.src=API_URL+data.video.video_url+'?t='+Date.now();
+       if(data.video.poster_url) v.poster=API_URL+data.video.poster_url+'?t='+Date.now();
+       v.load();
+       state.videoUrl=v.src;
+       state.videoReady=true;
+     }
+     state.narrationText=data.video.narration_text||state.narrationText||'';
+     log('動画制作AI：変更要望を実MP4へ反映 → 新しい動画を書き出し');
+   }
    state.score=typeof data.gate?.score==='number'?data.gate.score:state.score;
    state.quality=state.quality.map(()=>state.score);
    state.progress=[100,100,100,100,100];
    state.phases=['done','done','done','done','done'];
    document.getElementById('revisionRound').textContent='ブラッシュアップ '+state.revisionRound+'回';
-   document.getElementById('revisionStatus').textContent=data.gate?.passed?'編集完了・95点ゲート合格。さらに変更できます':'編集完了・品質'+state.score+'点。改善して再編集できます';
+   document.getElementById('revisionStatus').textContent=data.video?.change_request_applied
+     ? (data.gate?.passed?'編集完了・変更内容をMP4へ反映。95点ゲート合格':'編集完了・変更内容をMP4へ反映。品質'+state.score+'点')
+     : (data.gate?.passed?'編集完了・95点ゲート合格。さらに変更できます':'編集完了・品質'+state.score+'点。改善して再編集できます');
    document.getElementById('managerTask').textContent=data.gate?.passed?'変更要望を反映し、品質95点合格':'変更要望を反映しました。品質'+state.score+'点';
    log('編集AI：変更要望を反映。品質'+state.score+'点で再監査');
    if(data.gate?.improvement_rounds) log('統括AI：自動改善ラウンド '+data.gate.improvement_rounds+'回を実施');
