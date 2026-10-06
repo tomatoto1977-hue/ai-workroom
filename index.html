@@ -107,7 +107,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </section>
 <section class="final-card result-card">
       <div class="result-head"><strong>🎬 最新の成果物</strong><span class="result-badge" id="resultBadge">確認待ち</span></div>
-      <div class="video-preview" id="videoPreview"><div><b>完成動画プレビュー</b><span id="previewText">成果物を生成すると、ここから確認できます</span></div></div>
+      <div class="video-preview" id="videoPreview"><video id="completedVideo" controls playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div>
       <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
     </section>
   </div>
@@ -198,7 +198,9 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  delivered:[false,false,false,false,false],
  instruction:'節約・家計ショート動画',
  artifact:'',
- revisionRound:0
+ revisionRound:0,
+ videoUrl:'',
+ videoReady:false
 };
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
@@ -449,6 +451,27 @@ function syncThemeFlow(){
  const idx=avg<15?0:avg<32?1:avg<50?2:avg<72?3:avg<95?4:5;
  steps.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx || (i===5 && state.score>=95));});
 }
+async function renderCompletedVideo(data){
+ const v=document.getElementById('completedVideo'), empty=document.getElementById('videoEmpty');
+ if(!v)return;
+ try{
+   document.getElementById('previewText').textContent='MP4をレンダリング中…';
+   const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,results:data.results||[]})});
+   const x=await r.json();
+   if(!x.ok)throw new Error(x.error||'render failed');
+   v.src=API_URL+x.video_url+'?t='+Date.now();
+   v.style.display='block'; if(empty)empty.style.display='none';
+   state.videoUrl=v.src; state.videoReady=true;
+   document.getElementById('resultBadge').textContent='MP4完成・確認待ち';
+   document.getElementById('previewText').textContent='完成MP4です。再生ボタンから確認できます';
+   document.getElementById('nextAction').textContent='完成動画を確認してください';
+   log('動画制作AI：MP4レンダリング完了 → プレビューへ');
+ }catch(e){
+   if(empty)empty.style.display='grid';
+   document.getElementById('previewText').textContent='MP4生成に失敗しました。ログを確認してください';
+   log('動画制作AI：MP4生成エラー '+String(e).slice(0,100));
+ }
+}
 function syncFinalUI(){
  syncThemeFlow();
  const score=Number(state.score||0);
@@ -458,7 +481,7 @@ function syncFinalUI(){
  if(el('finalGate')) el('finalGate').textContent=passed?'95点合格':'改善・再点検が必要';
  if(el('nextScore')) el('nextScore').textContent=passed?'品質 '+score+'点':'品質 '+score+'点';
  if(el('nextAction') && !workflowRunning && !state.artifact) el('nextAction').textContent='初回動画を作る';
- if(el('previewText') && state.artifact) el('previewText').textContent='完成成果物を確認できます。変更要望から何度でも改善できます';
+ if(el('previewText') && state.artifact && !state.videoReady) el('previewText').textContent='MP4を生成しています…';
  if(el('finalStatus')) el('finalStatus').textContent=workflowRunning?'● 編集・監査中':(passed?'● 完成・確認待ち':'● 改善・再点検');
  if(el('resultBadge')) el('resultBadge').textContent=passed?'95点ゲート PASS':'改善中';
  if(el('previewText')) el('previewText').textContent=state.artifact?'現在の成果物を元にブラッシュアップ可能':'成果物を生成すると、ここから確認できます';
