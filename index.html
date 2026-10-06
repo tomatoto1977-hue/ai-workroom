@@ -68,6 +68,11 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
  .quality-card{order:3}.quality-total strong{font-size:20px}.quality-total span{font-size:7px}.qrow-top{font-size:7px}.qbar{height:3px}.agents-card{order:4}.agents-mini{grid-template-columns:1fr 1fr}.mini-agent{padding:7px}.mini-agent b{font-size:7px}.mini-agent small{font-size:6px}
  .detail-card{order:5}.final-footer{order:6;padding:5px 2px;font-size:6px}
 }
+/* ===== テーマ選出〜実行ワークフロー ===== */
+.theme-flow{border:1px solid #e0cfc0;border-radius:18px;background:rgba(255,255,255,.9);box-shadow:0 5px 18px rgba(70,45,30,.07);padding:13px}
+.theme-flow h2{font-size:12px;margin:0 0 4px}.theme-flow-sub{font-size:8px;color:#806f65;margin-bottom:9px}
+.flow-track{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:stretch}.flow-step{position:relative;padding:8px 7px;border:1px solid #e5d8cf;border-radius:11px;background:#fffaf5;min-width:0}.flow-step.active{border:2px solid #d9b99d;background:#fff5ea}.flow-step.done{background:#f2f7ef;border-color:#d5e3d0}.flow-num{font-size:7px;font-weight:900;color:#94705b}.flow-step b{display:block;font-size:8px;margin-top:3px}.flow-step small{display:block;font-size:6.5px;line-height:1.35;color:#806f65;margin-top:2px}.flow-dot{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#d7c8bc}.flow-step.active .flow-dot{background:#7654d9}.flow-step.done .flow-dot{background:#78916e}
+@media(max-width:700px){.theme-flow{padding:10px;border-radius:15px}.theme-flow h2{font-size:10px}.theme-flow-sub{font-size:6.5px;margin-bottom:7px}.flow-track{grid-template-columns:repeat(2,1fr);gap:6px}.flow-step{padding:7px 7px;min-height:62px}.flow-step b{font-size:7.5px}.flow-step small{font-size:6px}.flow-step:nth-child(5){grid-column:1/2}.flow-step:nth-child(6){grid-column:2/3}}
 </style>
 </head>
 <body>
@@ -84,7 +89,19 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
       <div class="next-label">今、何をすればいい？</div>
       <div class="next-line"><div class="next-action" id="nextAction">完成成果物を確認してください</div><span id="nextScore">品質 95+</span></div>
     </section>
-    <section class="final-card result-card">
+    <section class="theme-flow" id="themeFlow" aria-label="テーマ選出から実行まで">
+  <h2>🔎 テーマ選出 → 実行</h2>
+  <div class="theme-flow-sub">毎日の情報収集からテーマを選び、調査・企画・制作・品質確認を経て実行準備まで一つの流れで進めます。</div>
+  <div class="flow-track">
+    <div class="flow-step active"><span class="flow-dot"></span><span class="flow-num">STEP 1</span><b>テーマ選出</b><small>トレンド・需要・独自性から候補を選定</small></div>
+    <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 2</span><b>リサーチ</b><small>根拠・一次情報・競合・権利を確認</small></div>
+    <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 3</span><b>企画</b><small>視聴者に届く構成と切り口を設計</small></div>
+    <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 4</span><b>制作</b><small>台本・ナレーション・映像・字幕を制作</small></div>
+    <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 5</span><b>品質確認</b><small>95点ゲート・事実・安全・権利を監査</small></div>
+    <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 6</span><b>実行</b><small>成果物を確認し、次の改善へ進む</small></div>
+  </div>
+</section>
+<section class="final-card result-card">
       <div class="result-head"><strong>🎬 最新の成果物</strong><span class="result-badge" id="resultBadge">確認待ち</span></div>
       <div class="video-preview" id="videoPreview"><div><b>完成動画プレビュー</b><span id="previewText">成果物を生成すると、ここから確認できます</span></div></div>
       <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
@@ -405,7 +422,16 @@ document.getElementById('projectTitle').textContent='現在のプロジェクト
 render();start();checkApi();
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{}); }</script>
 <script>
+function syncThemeFlow(){
+ const steps=document.querySelectorAll('#themeFlow .flow-step');
+ if(!steps.length)return;
+ const p=state.progress||[];
+ const avg=p.reduce((a,b)=>a+b,0)/Math.max(1,p.length);
+ const idx=avg<15?0:avg<32?1:avg<50?2:avg<72?3:avg<95?4:5;
+ steps.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx || (i===5 && state.score>=95));});
+}
 function syncFinalUI(){
+ syncThemeFlow();
  const score=Number(state.score||0);
  const passed=score>=95;
  const el=id=>document.getElementById(id);
