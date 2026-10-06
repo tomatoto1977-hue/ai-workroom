@@ -344,6 +344,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
        }
      });
      state.artifact=data.results.map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
+     await renderCompletedVideo(data);
      state.revisionRound=0;
      document.getElementById('revisionRound').textContent='ブラッシュアップ 0回';
      document.getElementById('revisionStatus').textContent=data.gate?.passed?'完成成果物を確認済み。変更要望で何度でも編集できます':'完成成果物は改善・再点検中。変更要望で追加編集できます';
