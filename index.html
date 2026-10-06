@@ -107,8 +107,8 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </section>
 <section class="final-card result-card">
       <div class="result-head"><strong>🎬 最新の成果物</strong><span class="result-badge" id="resultBadge">確認待ち</span></div>
-      <div class="video-preview" id="videoPreview"><video id="completedVideo" controls playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div>
-      <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
+      <div class="video-preview" id="videoPreview"><video id="completedVideo" controls playsinline webkit-playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div>
+      <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="playNarration()">🔊 ナレーション</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
     </section>
   </div>
 
@@ -465,17 +465,32 @@ async function renderCompletedVideo(data){
    const x=await r.json();
    if(!x.ok)throw new Error(x.error||'render failed');
    v.src=API_URL+x.video_url+'?t='+Date.now();
+   if(x.poster_url) v.poster=API_URL+x.poster_url+'?t='+Date.now();
+   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
    v.style.display='block'; if(empty)empty.style.display='none';
-   state.videoUrl=v.src; state.videoReady=true;
-   document.getElementById('resultBadge').textContent='MP4完成・確認待ち';
-   document.getElementById('previewText').textContent='完成MP4です。再生ボタンから確認できます';
+   state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
+   document.getElementById('resultBadge').textContent=x.audio_embedded?'MP4完成・ナレーション付き':'MP4完成・確認待ち';
+   document.getElementById('previewText').textContent=x.audio_embedded?'完成MP4です。再生ボタンから確認できます':'完成MP4です。🔊ナレーションで音声確認できます';
    document.getElementById('nextAction').textContent='完成動画を確認してください';
-   log('動画制作AI：MP4レンダリング完了 → プレビューへ');
+   log(x.audio_embedded?'動画制作AI：MP4＋ナレーション生成完了 → プレビューへ':'動画制作AI：MP4生成完了 → ナレーション確認を準備');
+
  }catch(e){
    if(empty)empty.style.display='grid';
    document.getElementById('previewText').textContent='MP4生成に失敗しました。ログを確認してください';
    log('動画制作AI：MP4生成エラー '+String(e).slice(0,100));
  }
+}
+function playNarration(){
+ const text=(state.narrationText||'').trim();
+ if(!text){showToast('ナレーション原稿がまだありません');return;}
+ if(!('speechSynthesis' in window)){showToast('このiPhoneでは読み上げ機能を利用できません');return;}
+ window.speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang='ja-JP'; u.rate=1.02; u.pitch=1.0; u.volume=1.0;
+ u.onstart=()=>{document.getElementById('resultBadge').textContent='ナレーション再生中';};
+ u.onend=()=>{document.getElementById('resultBadge').textContent='MP4完成・確認待ち';};
+ window.speechSynthesis.speak(u);
+ log('ナレーション：iPhoneの日本語音声で確認再生');
 }
 function syncFinalUI(){
  syncThemeFlow();
