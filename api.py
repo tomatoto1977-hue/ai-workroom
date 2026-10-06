@@ -20,15 +20,26 @@ import imageio_ffmpeg
 app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
 
 def _video_font(size: int):
-    for p in [
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansJP-Regular.otf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]:
-        if Path(p).exists():
-            try: return ImageFont.truetype(p, size)
-            except Exception: pass
+    # Render環境でも日本語を必ず描画できるよう、同梱IPAexフォント→OSフォントの順で探索。
+    candidates = []
+    try:
+        import japanize_kivy
+        pkg = Path(japanize_kivy.__file__).resolve().parent
+        candidates += list(pkg.rglob("*.ttf")) + list(pkg.rglob("*.otf"))
+    except Exception:
+        pass
+    candidates += [
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansJP-Regular.otf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                return ImageFont.truetype(str(p), size)
+            except Exception:
+                pass
     return ImageFont.load_default()
 
 def _video_card(path: Path, title: str, body: str, step: str):
@@ -45,10 +56,36 @@ def _video_card(path: Path, title: str, body: str, step: str):
     d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
     im.save(path)
 
+def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
+    # 「企画書の読み上げ」ではなく、短く自然な確認用ナレーションを作る。
+    script = ""
+    for item in results or []:
+        if item.get("role") == "文章化AI":
+            script = str(item.get("text") or "").strip()
+            break
+    # シミュレーション時の定型台本は、そのまま読まず自然文に変換。
+    if script:
+        script = re.sub(r"【[^】]+】", "", script)
+        script = re.sub(r"【[^】]*】", "", script)
+        script = re.sub(r"\[[^\]]+\]", "", script)
+        script = re.sub(r"\s+", " ", script).strip()
+    if not script or len(script) < 25:
+        topic = clean(instruction)
+        script = (
+            f"今回は、{topic}を短い動画にまとめます。"
+            "まず、根拠と権利関係を確認します。"
+            "次に、結論を先にして、具体例と今日できる行動に絞ります。"
+            "企画書をそのまま読むのではなく、耳で聞いて自然な言葉に整えます。"
+            "最後に、事実性と安全性を確認し、95点の品質ゲートを通して完成です。"
+            "公開や投稿は、人が確認してから行います。"
+        )
+    return script[:650]
+
 @app.post("/api/render_video")
 async def render_video(req: dict[str, Any]):
     try:
         instruction=str(req.get("instruction","初回動画")).strip() or "初回動画"
+        results=req.get("results") or []
         job=uuid.uuid4().hex
         work=VIDEO_DIR/job; work.mkdir(parents=True,exist_ok=True)
         cards=[
@@ -60,11 +97,28 @@ async def render_video(req: dict[str, Any]):
             ("品質確認","事実・具体性・伝達性・安全性\n95点ゲートで確認","06 / QUALITY"),
             ("完成","変更要望から何度でも改善できます","07 / COMPLETE")
         ]
-        for i,(t,b,s) in enumerate(cards): _video_card(work/f"{i:02d}.png",t,b,s)
+        for i,(t,b,s) in enumerate(cards):
+            _video_card(work/f"{i:02d}.png",t,b,s)
         out=VIDEO_DIR/f"{job}.mp4"
         ff=imageio_ffmpeg.get_ffmpeg_exe()
-        subprocess.run([ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),"-c:v","libx264","-pix_fmt","yuv420p","-movflags","+faststart",str(out)],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
-        return {"ok":True,"video_url":f"/videos/{out.name}","video_id":job,"duration_seconds":35,"renderer":"imageio-ffmpeg"}
+        # iPhone/Safari向けにH.264 Main + yuv420p + faststartで固定。
+        subprocess.run([
+            ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),
+            "-c:v","libx264","-profile:v","main","-level","3.1",
+            "-pix_fmt","yuv420p","-movflags","+faststart",str(out)
+        ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+        narration=_narration_text(instruction,results)
+        return {
+            "ok":True,
+            "video_url":f"/videos/{out.name}",
+            "poster_url":f"/videos/{job}/00.png",
+            "video_id":job,
+            "duration_seconds":35,
+            "renderer":"imageio-ffmpeg",
+            "narration_text":narration,
+            "audio_embedded":False,
+            "audio_note":"課金なし・権利確認済みの音声サービスを勝手に外部接続せず、iPhone側の読み上げ確認に使用できます。"
+        }
     except Exception as e:
         return {"ok":False,"error":"MP4 rendering failed","detail":str(e)[:500]}
 
