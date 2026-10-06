@@ -431,9 +431,14 @@ async def orchestrate(req: RunRequest):
         {"stage": "統括", "roles": ["統括AI"]},
     ]
     results = parsed + [{"role": "統括AI", "status": "completed", "stage": "統括", "text": "11担当の成果を統合。95点品質ゲートを実施し、公開前は人間承認に進めます。"}]
+    # オーケストレーション完了と同時に実MP4まで生成する。
+    # フロントエンドから別リクエストを送らなくてよい構造にし、iPhone/Renderの再起動等で
+    # 「制作開始のまま」「OPTIONSだけでPOSTが届かない」状態にならないようにする。
+    video = _render_video_files(req.instruction, results)
     return {
         "ok": True, "mode": "openai" if refined else "local_template",
         "openai_configured": bool(client), "model": MODEL if client else None,
         "roles": [r[0] for r in ROLES], "role_count": len(ROLES),
-        "safety_rules": safety_rules(), "workflow": workflow, "gate": gate, "results": results
+        "safety_rules": safety_rules(), "workflow": workflow, "gate": gate, "results": results,
+        "video": video
     }
