@@ -86,42 +86,8 @@ async def render_video(req: dict[str, Any]):
     try:
         instruction=str(req.get("instruction","初回動画")).strip() or "初回動画"
         results=req.get("results") or []
-        job=uuid.uuid4().hex
-        work=VIDEO_DIR/job; work.mkdir(parents=True,exist_ok=True)
-        cards=[
-            ("テーマ選出",instruction,"01 / THEME"),
-            ("リサーチ","根拠・需要・権利を確認\n未確認情報は断定しません","02 / RESEARCH"),
-            ("企画","結論 → 具体例 → 今日できる行動","03 / PLAN"),
-            ("ナレーション","企画書の読み上げではなく\n短く自然に伝える","04 / SCRIPT"),
-            ("映像・字幕","縦9:16 / 1画面1メッセージ","05 / VIDEO"),
-            ("品質確認","事実・具体性・伝達性・安全性\n95点ゲートで確認","06 / QUALITY"),
-            ("完成","変更要望から何度でも改善できます","07 / COMPLETE")
-        ]
-        for i,(t,b,s) in enumerate(cards):
-            _video_card(work/f"{i:02d}.png",t,b,s)
-        out=VIDEO_DIR/f"{job}.mp4"
-        ff=imageio_ffmpeg.get_ffmpeg_exe()
-        # iPhone/Safari向けにH.264 Main + yuv420p + faststartで固定。
-        # iPhone/Safariで極端な低fps映像が黒画面になるケースを避けるため、
-        # 入力カードは5秒ごとのまま、出力を標準的な30fpsへ変換する。
-        subprocess.run([
-            ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),
-            "-vf","fps=30",
-            "-c:v","libx264","-profile:v","main","-level","3.1",
-            "-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
-        ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
-        narration=_narration_text(instruction,results)
-        return {
-            "ok":True,
-            "video_url":f"/videos/{out.name}",
-            "poster_url":f"/videos/{job}/00.png",
-            "video_id":job,
-            "duration_seconds":35,
-            "renderer":"imageio-ffmpeg",
-            "narration_text":narration,
-            "audio_embedded":False,
-            "audio_note":"課金なし・権利確認済みの音声サービスを勝手に外部接続せず、iPhone側の読み上げ確認に使用できます。"
-        }
+        change_request=str(req.get("change_request","")).strip()
+        return {"ok":True, **_render_video_files(instruction,results,change_request)}
     except Exception as e:
         return {"ok":False,"error":"MP4 rendering failed","detail":str(e)[:500]}
 
@@ -315,6 +281,42 @@ async def root():
 async def health():
     return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100"}
 
+def _render_video_files(instruction: str, results: list[dict[str, Any]], change_request: str = "") -> dict[str, Any]:
+    job=uuid.uuid4().hex
+    work=VIDEO_DIR/job
+    work.mkdir(parents=True,exist_ok=True)
+    cards=[
+        ("テーマ選出",instruction,"01 / THEME"),
+        ("リサーチ","根拠・需要・権利を確認\\n未確認情報は断定しません","02 / RESEARCH"),
+        ("企画","結論 → 具体例 → 今日できる行動","03 / PLAN"),
+        ("ナレーション",_narration_text(instruction,results),"04 / SCRIPT"),
+        ("映像・字幕","縦9:16 / 1画面1メッセージ","05 / VIDEO"),
+        ("品質確認","事実・具体性・伝達性・安全性\\n95点ゲートで確認","06 / QUALITY"),
+        ("完成" if not change_request else "変更反映",
+         ("変更要望\\n"+change_request[:220]) if change_request else "変更要望から何度でも改善できます",
+         "07 / COMPLETE")
+    ]
+    for i,(t,b,s) in enumerate(cards):
+        _video_card(work/f"{i:02d}.png",t,b,s)
+    out=VIDEO_DIR/f"{job}.mp4"
+    ff=imageio_ffmpeg.get_ffmpeg_exe()
+    subprocess.run([
+        ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),
+        "-vf","fps=30","-c:v","libx264","-profile:v","main","-level","3.1",
+        "-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
+    ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+    return {
+        "video_url":f"/videos/{out.name}",
+        "poster_url":f"/videos/{job}/00.png",
+        "video_id":job,
+        "duration_seconds":35,
+        "renderer":"ffmpeg-safe-renderer",
+        "narration_text":_narration_text(instruction,results),
+        "audio_embedded":False,
+        "audio_note":"課金なし・権利確認済みの外部TTSは自動接続せず、iPhone側でナレーション確認します。",
+        "change_request_applied":bool(change_request)
+    }
+
 @app.post("/api/revise")
 async def revise(req: ReviseRequest):
     if not req.change_request.strip():
@@ -344,6 +346,7 @@ async def revise(req: ReviseRequest):
                 break
             gate = await quality_gate(req.instruction + "\n変更要望:" + req.change_request, parsed)
         gate["improvement_rounds"] = attempts
+        revised_video = _render_video_files(req.instruction, parsed, req.change_request)
         return {
             "ok": True,
             "mode": "openai",
@@ -351,7 +354,8 @@ async def revise(req: ReviseRequest):
             "model": MODEL,
             "revised_artifact": revised,
             "change_request": req.change_request,
-            "gate": gate
+            "gate": gate,
+            "video": revised_video
         }
     # API未接続時は成果物を壊さず、変更要求を記録した安全な編集待ち状態を返す。
     fallback = str(base) + "\n\n【変更要望】\n" + req.change_request + "\n【編集状態】AI API未接続のため、実編集は未実行。"
