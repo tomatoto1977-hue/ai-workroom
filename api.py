@@ -194,9 +194,28 @@ async def orchestrate(req: RunRequest):
     parsed = parse_sections(final_text)
     if len(parsed) < 10:
         parsed = [{"role": k, "status": "completed", "text": v} for k,v in base_map.items() if k != "統括AI"]
+
+    # 95点未満なら、改善→再評価を最大2回。95点到達前は合格にしない。
     gate = await quality_gate(req.instruction, parsed)
+    attempts = 0
+    while not gate["passed"] and client and attempts < 2:
+        attempts += 1
+        improvements = " / ".join(gate.get("improvements", [])) or "各品質項目を実質的に改善してください。"
+        improved = await refine(
+            req.instruction,
+            final_text + "\n\n【品質監査の改善要求】\n" + improvements,
+            req.max_output_tokens
+        )
+        if not improved:
+            break
+        final_text = improved
+        parsed = parse_sections(final_text)
+        if len(parsed) < 10:
+            break
+        gate = await quality_gate(req.instruction, parsed)
     gate["score"] = min(gate["score"], 100)
     gate["passed"] = gate["score"] >= 95
+    gate["improvement_rounds"] = attempts
     gate["improvements"] = gate.get("improvements", [])
     workflow = [
         {"stage": "調査", "roles": ["市場調査AI", "競争戦略AI", "情報収集AI", "予算AI"]},
