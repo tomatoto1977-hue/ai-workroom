@@ -328,9 +328,11 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
      if(data.gate&&data.gate.passed){
        state.score=typeof data.gate.score==='number'?data.gate.score:95;
+       state.qualityBreakdown=data.gate.breakdown||{};
        log('統括AI：品質ゲート95点条件を確認');
      }else{
        state.score=typeof data.gate?.score==='number'?data.gate.score:Math.min(state.score,94);
+       state.qualityBreakdown=data.gate?.breakdown||{};
        log('統括AI：品質ゲート95点は未達。改善工程を継続');
      }
      render();
@@ -340,6 +342,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      await playWorkflow(data);
      document.getElementById('managerTask').textContent='シミュレーション工程完了。品質'+state.score+'点。実AI品質判定にはAPI接続が必要です';
      state.score=Math.min(94,Math.max(state.score,82));
+     state.qualityBreakdown=data.gate?.breakdown||{};
      state.quality=state.quality.map(()=>state.score);
      render();
    }
