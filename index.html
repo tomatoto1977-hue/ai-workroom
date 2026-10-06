@@ -501,19 +501,38 @@ async function renderCompletedVideo(data){
    }
    if(!x.ok)throw new Error(x.error||'render failed');
    const videoUrl=API_URL+x.video_url+'?t='+Date.now();
-   v.src=videoUrl;
+   // Renderの一時ファイルは再起動/スピンダウンで消えるため、完成直後にiPhone側へBlobとして取り込む。
+   // これにより、同じ画面を開いている間はRenderのファイル寿命に依存せず再生できる。
+   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
+   v.onplay=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='none';};
+   v.onerror=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='block';};
    if(x.poster_url){
      const posterUrl=API_URL+x.poster_url+'?t='+Date.now();
      v.poster=posterUrl;
      const poster=document.getElementById('videoPosterFallback');
      if(poster){poster.src=posterUrl;poster.style.display='block';}
    }
-   const openLink=document.getElementById('videoOpenLink');
-   if(openLink){openLink.href=videoUrl;openLink.style.display='inline';}
-   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
-   v.onplay=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='none';};
-   v.onerror=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='block';};
    v.style.display='block'; if(empty)empty.style.display='none';
+   document.getElementById('previewText').textContent='完成動画をiPhoneへ読み込んでいます…';
+   try{
+     const vr=await fetch(videoUrl,{cache:'no-store'});
+     if(!vr.ok) throw new Error('video HTTP '+vr.status);
+     const blob=await vr.blob();
+     if(!blob.size) throw new Error('empty video');
+     if(state.videoBlobUrl && state.videoBlobUrl.startsWith('blob:')) URL.revokeObjectURL(state.videoBlobUrl);
+     const blobUrl=URL.createObjectURL(blob);
+     state.videoBlobUrl=blobUrl;
+     v.src=blobUrl;
+     v.load();
+     const openLink=document.getElementById('videoOpenLink');
+     if(openLink){openLink.href=blobUrl;openLink.style.display='inline';}
+   }catch(fetchError){
+     // Blob化に失敗した場合は従来の直接URLを残し、再試行できるようにする。
+     v.src=videoUrl;
+     const openLink=document.getElementById('videoOpenLink');
+     if(openLink){openLink.href=videoUrl;openLink.style.display='inline';}
+     log('動画制作AI：iPhoneへのBlob取り込みに失敗 → 直接再生へフォールバック');
+   }
    state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
    document.getElementById('resultBadge').textContent=x.audio_embedded?'MP4完成・ナレーション付き':'MP4完成・確認待ち';
    document.getElementById('previewText').textContent=x.audio_embedded?'完成MP4です。再生ボタンから確認できます':'完成MP4です。🔊ナレーションで音声確認できます';
