@@ -33,6 +33,12 @@ class RunRequest(BaseModel):
     project: str = "秘密基地 AIエージェント作業室"
     max_output_tokens: int = 700
 
+class ReviseRequest(BaseModel):
+    instruction: str
+    change_request: str
+    current_artifact: str = ""
+    max_output_tokens: int = 900
+
 def clean(s: str) -> str:
     return re.sub(r"\s+", " ", str(s or "")).strip()
 
@@ -143,6 +149,32 @@ async def quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[
     audit=await ai_quality_gate(instruction,results)
     return audit or local_quality_gate(results)
 
+async def revise_artifact(instruction: str, change_request: str, current_artifact: str, max_tokens: int) -> str | None:
+    if not client:
+        return None
+    prompt = f"""あなたはAI作業室の編集AIです。完成済みの動画制作成果物を、ユーザーの変更要望に沿ってブラッシュアップします。
+元のプロジェクト:
+{instruction}
+変更要望:
+{change_request}
+現在の成果物:
+{current_artifact[:16000]}
+ルール:
+- 現在の成果物を土台にし、変更要望だけでなく既存の良い部分を維持する。
+- 動画の台本、ナレーション、字幕、カット構成、素材指示、編集指示を必要に応じて改善する。
+- 「企画書の読み上げ」にならない自然なナレーションを優先する。
+- 変更要望を反映した箇所を明確にする。
+- 未確認の事実は断定しない。
+- 著作権・肖像・個人情報・商標等の権利リスクがある素材は採用しない。
+- 特定人物、とくに芸能人への依存を避ける。
+- 公開・投稿・外部操作は人間承認後のみ。
+専門10担当の見出しを維持し、最後に「【変更内容】」と「【完成版編集指示】」を追加してください。"""
+    try:
+        r = await client.responses.create(model=MODEL, input=prompt, max_output_tokens=min(max_tokens, 1100))
+        return r.output_text.strip()
+    except Exception:
+        return None
+
 async def refine(instruction: str, base: str, max_tokens: int) -> str | None:
     if not client:
         return None
@@ -165,6 +197,58 @@ async def root():
 @app.get("/health")
 async def health():
     return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100"}
+
+@app.post("/api/revise")
+async def revise(req: ReviseRequest):
+    if not req.change_request.strip():
+        return {"ok": False, "error": "change_request is required"}
+    base = req.current_artifact.strip() or template_pack(req.instruction)
+    revised = await revise_artifact(req.instruction, req.change_request, str(base), req.max_output_tokens)
+    if revised:
+        parsed = parse_sections(revised)
+        if len(parsed) < 10:
+            parsed = [{"role": "編集AI", "status": "completed", "text": revised}]
+        gate = await quality_gate(req.instruction + "\n変更要望:" + req.change_request, parsed)
+        attempts = 0
+        while not gate["passed"] and client and attempts < 2:
+            attempts += 1
+            improvements = " / ".join(gate.get("improvements", [])) or "変更後の成果物をさらに具体化してください。"
+            improved = await revise_artifact(
+                req.instruction,
+                req.change_request + "\n品質監査の改善要求:" + improvements,
+                revised,
+                req.max_output_tokens
+            )
+            if not improved:
+                break
+            revised = improved
+            parsed = parse_sections(revised)
+            if len(parsed) < 10:
+                break
+            gate = await quality_gate(req.instruction + "\n変更要望:" + req.change_request, parsed)
+        gate["improvement_rounds"] = attempts
+        return {
+            "ok": True,
+            "mode": "openai",
+            "openai_configured": True,
+            "model": MODEL,
+            "revised_artifact": revised,
+            "change_request": req.change_request,
+            "gate": gate
+        }
+    # API未接続時は成果物を壊さず、変更要求を記録した安全な編集待ち状態を返す。
+    fallback = str(base) + "\n\n【変更要望】\n" + req.change_request + "\n【編集状態】AI API未接続のため、実編集は未実行。"
+    gate = local_quality_gate([{"role":"編集AI","text":fallback}])
+    gate["passed"] = False
+    return {
+        "ok": True,
+        "mode": "local_template",
+        "openai_configured": False,
+        "revised_artifact": fallback,
+        "change_request": req.change_request,
+        "gate": gate,
+        "note": "実AI未接続時は編集を完了扱いにせず、人間確認待ち。"
+    }
 
 @app.post("/api/orchestrate")
 async def orchestrate(req: RunRequest):
