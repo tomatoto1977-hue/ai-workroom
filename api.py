@@ -528,8 +528,13 @@ def _render_video_files(instruction: str, results: list[dict[str, Any]], change_
         final_out=muxed
         audio_embedded=True
 
+    # Renderの一時ファイルを後から再取得する経路を避けるため、完成直後のMP4本体も同じAPI応答へ含める。
+    # iPhone側はこのbase64をBlobへ変換して再生する。永続ディスクや有料ストレージは使用しない。
+    video_base64=base64.b64encode(final_out.read_bytes()).decode("ascii")
     return {
         "video_url":f"/videos/{final_out.name}",
+        "video_base64":video_base64,
+        "video_mime":"video/mp4",
         "poster_url":f"/videos/{job}/00.png",
         "audio_url":f"/videos/{job}/narration.wav" if tts_ok else None,
         "video_id":job,
