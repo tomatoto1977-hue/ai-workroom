@@ -25,7 +25,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .control{position:absolute;left:10%;bottom:2%;width:68%;display:flex;gap:6px;align-items:center;padding:6px 7px;background:rgba(255,255,255,.96);border:2px solid #c99f7d;border-radius:18px;box-shadow:0 6px 18px rgba(80,55,40,.18);z-index:100}.control label{font-size:9px;font-weight:900;white-space:nowrap;color:#6b5143}.control input{flex:1;min-width:0;border:1px solid #d9c6b7;border-radius:18px;padding:7px 10px;background:#fff;outline:none;font-size:11px}.control input:focus{border-color:#8b6a57;box-shadow:0 0 0 2px rgba(139,106,87,.12)}.control button{border:0;border-radius:18px;padding:7px 12px;background:#8b6a57;color:white;font-weight:800;font-size:11px;cursor:pointer}.control .hint{position:absolute;left:10px;bottom:100%;margin-bottom:4px;font-size:8px;font-weight:800;color:#7b6254}
 .status{position:absolute;left:1.7%;bottom:1.7%;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.95);font-size:10px;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.1)}
 .dyn-card{font-size:5px;padding:2px 3px;border-width:1px;border-radius:7px}.dyn-card b{font-size:5.5px}.dyn-card small{margin:1px 0}.dyn-card .mini-bar{height:2px}.thought{font-size:6px;padding:3px 5px;border-width:1px}.doc{width:13px;height:10px;font-size:5px;line-height:7px;border-width:1px}
-@media(max-width:700px){
+.revision-panel{position:absolute;left:25%;right:20%;bottom:9%;padding:10px 12px;background:rgba(255,252,248,.97);border:2px solid #d5b49a;border-radius:16px;box-shadow:0 6px 18px rgba(80,55,40,.16);z-index:150}.revision-panel h3{margin:0 0 5px;font-size:12px}.revision-panel p{margin:0 0 6px;font-size:9px;color:#75645b}.revision-panel textarea{width:100%;min-height:58px;resize:vertical;border:1px solid #d9c6b7;border-radius:10px;padding:7px 9px;background:#fff;color:#4c4039;font-size:11px;outline:none}.revision-panel textarea:focus{border-color:#8b6a57;box-shadow:0 0 0 2px rgba(139,106,87,.12)}.revision-actions{display:flex;gap:7px;align-items:center;margin-top:6px}.revision-actions button{flex:1;border:0;border-radius:12px;padding:8px 10px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.revision-actions button:disabled{opacity:.55}.revision-round{font-size:8px;font-weight:800;color:#80695d;white-space:nowrap}.revision-panel .revision-current{font-size:8px;font-weight:800;color:#9a6e4e;margin-bottom:4px}@media(max-width:700px){
 .reference{object-fit:cover;object-position:center center;content:url("./visual-mobile-target2.svg?v=1")}
 .shell{padding:0;overflow:hidden;background:#efe2d5}.artboard{width:100vw;height:100dvh;aspect-ratio:auto;border-radius:0;box-shadow:none;overflow:hidden}
 .project{left:6%;top:3.2%;width:88%;font-size:9px;padding:7px 10px;z-index:300}.project strong{font-size:10px;line-height:1.15}.project span{font-size:8px}
@@ -61,6 +61,13 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 <div class="overview-grid"><div><b>テーマ</b><span id="mobileTheme">節約・家計ショート動画</span></div><div><b>形式</b><span>ショート動画／ナレーション</span></div><div><b>条件</b><span>根拠確認・品質チェック</span></div><div><b>目的</b><span>視聴者に分かりやすく伝わる完成動画</span></div></div></div></section><div class="panel manager"><b>統括AI</b><span class="quality" id="quality">品質 82点</span><small id="managerTask">市場調査と競争戦略を確認中</small></div>
 <div class="panel log"><h3>作業ログ</h3><div id="log"><div>10:27　調査AI：市場データを確認中</div><div>10:27　企画AI：企画案を検討中</div><div>10:27　台本AI：台本を作成中</div><div>10:27　チェックAI：受け渡し待ち</div><div>10:27　編集AI：編集作業中</div></div></div>
 <div class="panel gate"><b>品質ゲート</b><strong id="gateScore">82点</strong><small id="gateStatus">改善・再点検が必要</small></div>
+<section class="revision-panel" id="revisionPanel" aria-label="完成動画のブラッシュアップ">
+  <h3>🎬 完成動画をブラッシュアップ</h3>
+  <div class="revision-current" id="revisionCurrent">現在の成果物を元に、何度でも改善できます</div>
+  <p id="revisionStatus">変更したい点を入力してください。台本・構成・字幕・編集方針を現在の成果物から引き継ぎます。</p>
+  <textarea id="changeRequest" maxlength="1000" placeholder="例：冒頭3秒をもっと強く／ナレーションを短く／字幕を読みやすく／画像の切替を自然に"></textarea>
+  <div class="revision-actions"><button type="button" id="reviseButton" onclick="reviseFromRequest()">変更要望に沿って編集</button><span class="revision-round" id="revisionRound">ブラッシュアップ 0回</span></div>
+</section>
 <form class="control" id="instructionForm" onsubmit="send();return false;"><div class="hint">ここから統括AIに指示できます</div><label for="instruction">統括AIへの指示</label><input id="instruction" autocomplete="off" placeholder="例：電気代を節約するショート動画を作って"><button type="submit">送信</button></form>
 <div class="status" id="status">● LIVE　統括AIが全工程を管理</div>
 <div class="toast" id="toast"></div>
@@ -84,7 +91,9 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
  delivered:[false,false,false,false,false],
- instruction:'節約・家計ショート動画'
+ instruction:'節約・家計ショート動画',
+ artifact:'',
+ revisionRound:0
 };
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
@@ -211,6 +220,10 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
          log(item.role+'：エラーを検知。改善待ち');
        }
      });
+     state.artifact=data.results.map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
+     state.revisionRound=0;
+     document.getElementById('revisionRound').textContent='ブラッシュアップ 0回';
+     document.getElementById('revisionStatus').textContent=data.gate?.passed?'完成成果物を確認済み。変更要望で何度でも編集できます':'完成成果物は改善・再点検中。変更要望で追加編集できます';
      const manager=data.results.find(item=>item.role==='統括AI');
      const roleMap={'市場調査AI':0,'企画AI':1,'文章化AI':2,'エビデンスAI':3,'編集AI':4};
      data.results.forEach(item=>{
@@ -247,6 +260,40 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
    }
  }catch(e){log('AI API：接続待ち。画面シミュレーションを継続');document.getElementById('managerTask').textContent='接続を確認できませんでした。もう一度お試しください';}
  finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
+}
+async function reviseFromRequest(){
+ const input=document.getElementById('changeRequest');
+ const btn=document.getElementById('reviseButton');
+ const request=(input.value||'').trim();
+ if(!request){input.focus();document.getElementById('revisionStatus').textContent='変更したい内容を入力してください';return;}
+ if(workflowRunning){document.getElementById('revisionStatus').textContent='現在の編集工程が進行中です。完了後に再度変更できます';return;}
+ const current=state.artifact||'現在の成果物情報はまだありません。現在のプロジェクト指示を基準に編集してください。';
+ btn.disabled=true;btn.textContent='編集・再監査中…';workflowRunning=true;apiDriven=true;
+ document.getElementById('revisionStatus').textContent='現在の成果物を読み込み、変更要望に沿って編集しています';
+ log('編集AI：変更要望を受領 → 現在の成果物を基準にブラッシュアップ開始');
+ try{
+   const r=await fetch(API_URL+'/api/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction||'現在のプロジェクト',change_request:request,current_artifact:current,max_output_tokens:900})});
+   const data=await r.json();
+   if(!data.ok) throw new Error(data.error||'revision failed');
+   if(data.revised_artifact) state.artifact=data.revised_artifact;
+   state.revisionRound=(state.revisionRound||0)+1;
+   state.score=typeof data.gate?.score==='number'?data.gate.score:state.score;
+   state.quality=state.quality.map(()=>state.score);
+   state.progress=[100,100,100,100,100];
+   state.phases=['done','done','done','done','done'];
+   document.getElementById('revisionRound').textContent='ブラッシュアップ '+state.revisionRound+'回';
+   document.getElementById('revisionStatus').textContent=data.gate?.passed?'編集完了・95点ゲート合格。さらに変更できます':'編集完了・品質'+state.score+'点。改善して再編集できます';
+   document.getElementById('managerTask').textContent=data.gate?.passed?'変更要望を反映し、品質95点合格':'変更要望を反映しました。品質'+state.score+'点';
+   log('編集AI：変更要望を反映。品質'+state.score+'点で再監査');
+   if(data.gate?.improvement_rounds) log('統括AI：自動改善ラウンド '+data.gate.improvement_rounds+'回を実施');
+   input.value='';
+   render();
+ }catch(e){
+   document.getElementById('revisionStatus').textContent='編集処理に接続できませんでした。もう一度お試しください';
+   log('編集AI：接続または編集処理でエラー。成果物は変更していません');
+ }finally{
+   workflowRunning=false;apiDriven=false;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
+ }
 }
 async function checkApi(){
  try{
