@@ -73,7 +73,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .theme-flow h2{font-size:12px;margin:0 0 4px}.theme-flow-sub{font-size:8px;color:#806f65;margin-bottom:9px}
 .flow-track{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:stretch}.flow-step{position:relative;padding:8px 7px;border:1px solid #e5d8cf;border-radius:11px;background:#fffaf5;min-width:0}.flow-step.active{border:2px solid #d9b99d;background:#fff5ea}.flow-step.done{background:#f2f7ef;border-color:#d5e3d0}.flow-num{font-size:7px;font-weight:900;color:#94705b}.flow-step b{display:block;font-size:8px;margin-top:3px}.flow-step small{display:block;font-size:6.5px;line-height:1.35;color:#806f65;margin-top:2px}.flow-dot{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#d7c8bc}.flow-step.active .flow-dot{background:#7654d9}.flow-step.done .flow-dot{background:#78916e}
 @media(max-width:700px){.theme-flow{padding:10px;border-radius:15px}.theme-flow h2{font-size:10px}.theme-flow-sub{font-size:6.5px;margin-bottom:7px}.flow-track{grid-template-columns:repeat(2,1fr);gap:6px}.flow-step{padding:7px 7px;min-height:62px}.flow-step b{font-size:7.5px}.flow-step small{font-size:6px}.flow-step:nth-child(5){grid-column:1/2}.flow-step:nth-child(6){grid-column:2/3}}
-</style>
+.first-video-action{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;padding:10px 11px;border:2px solid #d9b99d;border-radius:14px;background:#fff8f0}.first-video-action b{display:block;font-size:11px}.first-video-action small{display:block;font-size:7px;color:#806f65;margin-top:3px}.first-video-action button{border:0;border-radius:12px;padding:10px 16px;background:#7654d9;color:#fff;font-size:10px;font-weight:900;white-space:nowrap;box-shadow:0 4px 10px rgba(118,84,217,.2)}.first-video-action button:disabled{opacity:.55}@media(max-width:700px){.first-video-action{padding:9px;gap:7px}.first-video-action b{font-size:9px}.first-video-action small{font-size:6px;max-width:190px}.first-video-action button{padding:9px 11px;font-size:9px;border-radius:11px}}</style>
 </head>
 <body>
 <div class="shell"><main class="artboard" id="board">
@@ -92,7 +92,11 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     <section class="theme-flow" id="themeFlow" aria-label="テーマ選出から実行まで">
   <h2>🔎 テーマ選出 → 実行</h2>
   <div class="theme-flow-sub">毎日の情報収集からテーマを選び、調査・企画・制作・品質確認を経て実行準備まで一つの流れで進めます。</div>
-  <div class="flow-track">
+  <div class="first-video-action">
+  <div><b>🎬 初回動画を作る</b><small>テーマが未指定なら、候補選出から制作工程を開始します</small></div>
+  <button type="button" id="firstVideoButton" onclick="startFirstVideo()">初回動画を作る</button>
+</div>
+<div class="flow-track">
     <div class="flow-step active"><span class="flow-dot"></span><span class="flow-num">STEP 1</span><b>テーマ選出</b><small>トレンド・需要・独自性から候補を選定</small></div>
     <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 2</span><b>リサーチ</b><small>根拠・一次情報・競合・権利を確認</small></div>
     <div class="flow-step"><span class="flow-dot"></span><span class="flow-num">STEP 3</span><b>企画</b><small>視聴者に届く構成と切り口を設計</small></div>
@@ -294,6 +298,21 @@ async function playWorkflow(data){
  start();
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
+async function startFirstVideo(){
+ const btn=document.getElementById('firstVideoButton');
+ if(workflowRunning){document.getElementById('revisionStatusFinal').textContent='現在の制作工程が進行中です';return;}
+ const instruction=(state.instruction&&state.instruction!=='節約・家計ショート動画')
+   ? state.instruction
+   : '毎日の情報収集から視聴者に役立つテーマを選び、著作権・特定人物への依存を避けたショート動画を初回制作する。テーマ選出→リサーチ→企画→制作→品質確認まで実行する。';
+ const input=document.getElementById('instruction');
+ if(input) input.value=instruction;
+ if(btn){btn.disabled=true;btn.textContent='制作開始…';}
+ document.getElementById('nextAction').textContent='テーマ選出・リサーチを開始しています';
+ document.getElementById('finalStatus').textContent='● 初回動画の制作中';
+ log('統括AI：初回動画制作を開始 → テーマ選出から実行');
+ try{ await send(); }
+ finally{ if(btn){btn.disabled=false;btn.textContent='初回動画を作る';} syncFinalUI(); }
+}
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
@@ -438,6 +457,8 @@ function syncFinalUI(){
  if(el('finalScore')) el('finalScore').textContent=score;
  if(el('finalGate')) el('finalGate').textContent=passed?'95点合格':'改善・再点検が必要';
  if(el('nextScore')) el('nextScore').textContent=passed?'品質 '+score+'点':'品質 '+score+'点';
+ if(el('nextAction') && !workflowRunning && !state.artifact) el('nextAction').textContent='初回動画を作る';
+ if(el('previewText') && state.artifact) el('previewText').textContent='完成成果物を確認できます。変更要望から何度でも改善できます';
  if(el('finalStatus')) el('finalStatus').textContent=workflowRunning?'● 編集・監査中':(passed?'● 完成・確認待ち':'● 改善・再点検');
  if(el('resultBadge')) el('resultBadge').textContent=passed?'95点ゲート PASS':'改善中';
  if(el('previewText')) el('previewText').textContent=state.artifact?'現在の成果物を元にブラッシュアップ可能':'成果物を生成すると、ここから確認できます';
