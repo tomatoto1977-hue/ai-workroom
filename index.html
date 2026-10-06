@@ -328,7 +328,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
  x.value='';start();render();
  try{
    const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700'});
-   const r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store'});
+   const r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
    const data=await r.json();
    if(data.selected_theme){
      state.instruction=data.selected_theme.title||state.instruction;
@@ -398,7 +398,7 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      state.quality=state.quality.map(()=>state.score);
      render();
    }
- }catch(e){log('AI API：接続待ち。画面シミュレーションを継続');document.getElementById('managerTask').textContent='接続を確認できませんでした。もう一度お試しください';}
+ }catch(e){const msg=String(e&&e.message||e).slice(0,80);log('AI API：接続エラー → '+msg);document.getElementById('managerTask').textContent='動画制作APIへの接続に失敗しました。再読み込み後にもう一度お試しください';document.getElementById('nextAction').textContent='API接続を再確認してください';}
  finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
 }
 async function reviseFromRequest(){
@@ -477,7 +477,12 @@ async function checkApi(){
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
 render();start();checkApi();
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js?v=40').catch(()=>{}); }</script>
+// iPhone/Safariで古いPWAキャッシュが残ると、更新済みAPI呼び出しが実行されないことがあるため、動画確認画面ではService Workerを使用しない。
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
+  if(window.caches) caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});
+}
+window.__AI_WORKROOM_BUILD='20261006-video-fix-2';</script>
 <script>
 function syncThemeFlow(){
  const steps=document.querySelectorAll('#themeFlow .flow-step');
