@@ -11,7 +11,7 @@ import subprocess
 
 APP_VERSION = "2.1.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
-app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://[^/]+\\.onrender\\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 from fastapi.staticfiles import StaticFiles
@@ -370,6 +370,15 @@ async def revise(req: ReviseRequest):
         "gate": gate,
         "note": "実AI未接続時は編集を完了扱いにせず、人間確認待ち。"
     }
+
+@app.get("/api/orchestrate_get")
+async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700):
+    # iPhone/SafariでJSON POSTのCORS preflightが失敗する場合に備えた単純GET経路。
+    return await orchestrate(RunRequest(
+        instruction=instruction,
+        project=project,
+        max_output_tokens=max_output_tokens,
+    ))
 
 @app.post("/api/orchestrate")
 async def orchestrate(req: RunRequest):
