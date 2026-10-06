@@ -23,9 +23,9 @@ def _video_font(size: int):
     # Render環境でも日本語を必ず描画できるよう、同梱IPAexフォント→OSフォントの順で探索。
     candidates = []
     try:
-        import japanize_kivy
-        pkg = Path(japanize_kivy.__file__).resolve().parent
-        candidates += list(pkg.rglob("*.ttf")) + list(pkg.rglob("*.otf"))
+        import noto_cjk_sans_jp_regular
+        pkg = Path(noto_cjk_sans_jp_regular.__file__).resolve().parent
+        candidates += list(pkg.rglob("*.otf")) + list(pkg.rglob("*.ttf"))
     except Exception:
         pass
     candidates += [
