@@ -11,7 +11,7 @@ import subprocess
 
 APP_VERSION = "2.1.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
-app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://[^/]+\\.onrender\\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 from fastapi.staticfiles import StaticFiles
