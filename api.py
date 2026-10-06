@@ -102,10 +102,13 @@ async def render_video(req: dict[str, Any]):
         out=VIDEO_DIR/f"{job}.mp4"
         ff=imageio_ffmpeg.get_ffmpeg_exe()
         # iPhone/Safari向けにH.264 Main + yuv420p + faststartで固定。
+        # iPhone/Safariで極端な低fps映像が黒画面になるケースを避けるため、
+        # 入力カードは5秒ごとのまま、出力を標準的な30fpsへ変換する。
         subprocess.run([
             ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),
+            "-vf","fps=30",
             "-c:v","libx264","-profile:v","main","-level","3.1",
-            "-pix_fmt","yuv420p","-movflags","+faststart",str(out)
+            "-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
         ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
         narration=_narration_text(instruction,results)
         return {
