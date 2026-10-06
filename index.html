@@ -379,7 +379,11 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
      log('AI API：現在はシミュレーションモード。実AIの品質判定はAPIキー設定後に実行');
      document.getElementById('managerTask').textContent='指示を受領。安全なシミュレーション工程を開始します';
      await playWorkflow(data);
-     document.getElementById('managerTask').textContent='シミュレーション工程完了。品質'+state.score+'点。実AI品質判定にはAPI接続が必要です';
+     // APIキー未接続の安全なシミュレーションでも、成果物とMP4プレビューを生成する。
+     // 「実AI判定」と「動画レンダリング」を分離し、プレビューだけが空になる状態を防ぐ。
+     state.artifact=(data.results||[]).map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
+     await renderCompletedVideo(data);
+     document.getElementById('managerTask').textContent='シミュレーション工程完了。MP4プレビューを生成しました。品質'+state.score+'点（実AI判定はAPIキー設定後）';
      state.score=Math.min(94,Math.max(state.score,82));
      state.qualityBreakdown=data.gate?.breakdown||{};
      state.quality=state.quality.map(()=>state.score);
