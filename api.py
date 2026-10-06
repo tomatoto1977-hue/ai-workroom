@@ -5,9 +5,69 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 
+from pathlib import Path
+import uuid
+import subprocess
+
 APP_VERSION = "2.1.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
+VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+from fastapi.staticfiles import StaticFiles
+from PIL import Image, ImageDraw, ImageFont
+import imageio_ffmpeg
+app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
+
+def _video_font(size: int):
+    for p in [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansJP-Regular.otf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]:
+        if Path(p).exists():
+            try: return ImageFont.truetype(p, size)
+            except Exception: pass
+    return ImageFont.load_default()
+
+def _video_card(path: Path, title: str, body: str, step: str):
+    im=Image.new("RGB",(720,1280),(248,240,232))
+    d=ImageDraw.Draw(im)
+    d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,250,245),outline=(217,185,157),width=3)
+    d.text((70,75),"AI WORKROOM",font=_video_font(34),fill=(76,64,57))
+    d.text((70,155),step,font=_video_font(25),fill=(118,84,217))
+    d.text((70,225),title,font=_video_font(50),fill=(65,55,49))
+    y=335
+    for line in body.split("\n")[:10]:
+        d.text((70,y),line[:31],font=_video_font(29),fill=(92,79,70)); y+=57
+    d.rounded_rectangle((70,1010,650,1090),radius=18,fill=(139,106,87))
+    d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
+    im.save(path)
+
+@app.post("/api/render_video")
+async def render_video(req: dict[str, Any]):
+    try:
+        instruction=str(req.get("instruction","初回動画")).strip() or "初回動画"
+        job=uuid.uuid4().hex
+        work=VIDEO_DIR/job; work.mkdir(parents=True,exist_ok=True)
+        cards=[
+            ("テーマ選出",instruction,"01 / THEME"),
+            ("リサーチ","根拠・需要・権利を確認\n未確認情報は断定しません","02 / RESEARCH"),
+            ("企画","結論 → 具体例 → 今日できる行動","03 / PLAN"),
+            ("ナレーション","企画書の読み上げではなく\n短く自然に伝える","04 / SCRIPT"),
+            ("映像・字幕","縦9:16 / 1画面1メッセージ","05 / VIDEO"),
+            ("品質確認","事実・具体性・伝達性・安全性\n95点ゲートで確認","06 / QUALITY"),
+            ("完成","変更要望から何度でも改善できます","07 / COMPLETE")
+        ]
+        for i,(t,b,s) in enumerate(cards): _video_card(work/f"{i:02d}.png",t,b,s)
+        out=VIDEO_DIR/f"{job}.mp4"
+        ff=imageio_ffmpeg.get_ffmpeg_exe()
+        subprocess.run([ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),"-c:v","libx264","-pix_fmt","yuv420p","-movflags","+faststart",str(out)],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+        return {"ok":True,"video_url":f"/videos/{out.name}","video_id":job,"duration_seconds":35,"renderer":"imageio-ffmpeg"}
+    except Exception as e:
+        return {"ok":False,"error":"MP4 rendering failed","detail":str(e)[:500]}
+
 
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 API_KEY = os.getenv("OPENAI_API_KEY", "")
