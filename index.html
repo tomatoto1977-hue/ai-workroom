@@ -330,6 +330,14 @@ async function send(){const x=document.getElementById('instruction');if(!x.value
    const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700'});
    const r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store'});
    const data=await r.json();
+   if(data.selected_theme){
+     state.instruction=data.selected_theme.title||state.instruction;
+     document.getElementById('projectTitle').textContent='現在のプロジェクト：'+state.instruction.slice(0,34)+(state.instruction.length>34?'…':'');
+     log('統括AI：ライブテーマ選出 → 「'+state.instruction+'」 / スコア '+(data.selected_theme.score||0));
+     log('テーマ根拠：'+(data.selected_theme.raw_trend||'ライブトレンド')+' / '+(data.selected_theme.engine||'テーマエンジン'));
+     if(data.selected_theme.youtube_research_enabled) log('市場調査AI：YouTube短尺動画の人気シグナルも確認');
+     else log('市場調査AI：Google Trends + Google Newsで最新需要を確認（動画APIは未接続）');
+   }
    if(data.workflow){
      data.workflow.forEach(w=>log(w.stage+'工程：'+w.roles.join('・')+' が担当'));
    }
