@@ -1,11 +1,11 @@
-import os, re
+import os, re, json
 from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com"], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
@@ -73,23 +73,75 @@ def parse_sections(text: str) -> list[dict[str, Any]]:
             hits.append({"role": name, "status": "completed", "text": clean(m.group(1))})
     return hits
 
-def quality_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
+QUALITY_RUBRIC = {
+    "事実性": 25, "目的適合": 20, "具体性": 20,
+    "伝達性": 15, "実装可能性": 10, "安全性": 10
+}
+
+def local_quality_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """AI APIが使えない場合の安全側フォールバック。単語の有無だけで満点にしない。"""
     text = "\n".join(str(x.get("text", "")) for x in results)
-    checks = {
-        "事実性": (25, bool(re.search(r"出典|一次情報|公式|確認日|要確認", text))),
-        "目的適合": (20, bool(re.search(r"テーマ|企画|視聴者|台本", text))),
-        "具体性": (20, bool(re.search(r"具体|手順|行動|カット|字幕", text))),
-        "伝達性": (15, bool(re.search(r"結論|冒頭|CTA|1画面1メッセージ", text))),
-        "実装可能性": (10, bool(re.search(r"Canva|編集|受け渡し|素材|縦9:16", text))),
-        "安全性": (10, bool(re.search(r"著作権|権利|個人情報|人間承認|特定人物", text))),
+    rules = {
+        "事実性": [r"出典|一次情報|公式", r"確認日|取得日|要確認", r"数字|料金|制度"],
+        "目的適合": [r"テーマ|企画", r"視聴者|ニーズ", r"目的|価値"],
+        "具体性": [r"具体|手順|行動", r"カット|字幕|秒", r"例|ステップ"],
+        "伝達性": [r"結論|冒頭|フック", r"CTA|保存", r"1画面1メッセージ|短く"],
+        "実装可能性": [r"Canva|CapCut|編集", r"受け渡し|素材", r"縦9:16|1080"],
+        "安全性": [r"著作権|権利", r"個人情報|肖像|商標", r"人間承認|公開.*しない|外部操作"]
     }
-    scores = {k: (v if ok else 0) for k, (v, ok) in checks.items()}
-    total = sum(scores.values())
-    return {
-        "target": 95, "max": 100, "score": total, "passed": total >= 95,
-        "breakdown": scores,
-        "reason": "6項目100点満点。95点以上で合格、未達は改善・再評価。"
-    }
+    breakdown={}
+    evidence={}
+    for name, max_score in QUALITY_RUBRIC.items():
+        groups=rules[name]
+        hits=sum(bool(re.search(g,text,re.I)) for g in groups)
+        score=round(max_score*hits/len(groups))
+        breakdown[name]=score
+        evidence[name]=f"{hits}/{len(groups)}観点を確認（API未使用のローカル監査）"
+    total=sum(breakdown.values())
+    return {"target":95,"max":100,"score":total,"passed":total>=95,
+            "breakdown":breakdown,"evidence":evidence,"auditor":"local_safety_fallback",
+            "reason":"95点未満は合格扱いにせず、改善・再評価へ送る。"}
+
+async def ai_quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not client:
+        return None
+    material = "\n\n".join(f"【{x.get('role','')}】\n{x.get('text','')}" for x in results)
+    prompt = f"""あなたはAI作業室の品質監査AIです。法的助言ではありません。
+成果物を以下の固定配点で厳格に採点してください。文字列の有無ではなく、内容の実質を評価します。
+事実性25：根拠・一次/公式情報・数字の確認・不確実性の扱い。
+目的適合20：依頼目的、対象者、価値、テーマへの一致。
+具体性20：具体例、手順、数値、カット/字幕等、すぐ実行できる粒度。
+伝達性15：冒頭の結論/フック、論理順序、短さ、CTA、1画面1メッセージ。
+実装可能性10：実際の制作・編集・受け渡しが可能で、必要素材が明確。
+安全性10：著作権、商標、肖像、個人情報、誤認、未確認情報、特定人物依存を回避し、人間承認で公開を停止。
+95点以上だけpassed=true。95点未満なら、各項目の具体的な改善点を示す。
+JSONだけ返してください。
+形式:
+{{"score":0,"passed":false,"breakdown":{{"事実性":0,"目的適合":0,"具体性":0,"伝達性":0,"実装可能性":0,"安全性":0}},"improvements":["..."],"evidence":{{"事実性":"...","目的適合":"...","具体性":"...","伝達性":"...","実装可能性":"...","安全性":"..."}}}}
+依頼:
+{instruction}
+成果物:
+{material[:14000]}"""
+    try:
+        r=await client.responses.create(model=MODEL,input=prompt,max_output_tokens=900)
+        raw=(r.output_text or "").strip()
+        m=re.search(r"\{.*\}",raw,re.S)
+        data=json.loads(m.group(0) if m else raw)
+        b={k:max(0,min(QUALITY_RUBRIC[k],int(data.get("breakdown",{}).get(k,0)))) for k in QUALITY_RUBRIC}
+        score=sum(b.values())
+        data["breakdown"]=b
+        data["score"]=score
+        data["max"]=100
+        data["target"]=95
+        data["passed"]=score>=95
+        data["auditor"]="openai_semantic_quality_audit"
+        return data
+    except Exception:
+        return None
+
+async def quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[str, Any]:
+    audit=await ai_quality_gate(instruction,results)
+    return audit or local_quality_gate(results)
 
 async def refine(instruction: str, base: str, max_tokens: int) -> str | None:
     if not client:
@@ -142,9 +194,10 @@ async def orchestrate(req: RunRequest):
     parsed = parse_sections(final_text)
     if len(parsed) < 10:
         parsed = [{"role": k, "status": "completed", "text": v} for k,v in base_map.items() if k != "統括AI"]
-    gate = quality_gate(parsed)
+    gate = await quality_gate(req.instruction, parsed)
     gate["score"] = min(gate["score"], 100)
     gate["passed"] = gate["score"] >= 95
+    gate["improvements"] = gate.get("improvements", [])
     workflow = [
         {"stage": "調査", "roles": ["市場調査AI", "競争戦略AI", "情報収集AI", "予算AI"]},
         {"stage": "企画", "roles": ["企画AI"]},
