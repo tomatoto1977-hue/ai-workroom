@@ -483,8 +483,13 @@ async function renderCompletedVideo(data){
  if(!v)return;
  try{
    document.getElementById('previewText').textContent='MP4をレンダリング中…';
-   const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,results:data.results||[]})});
-   const x=await r.json();
+   // /api/orchestrate が新しいMP4を返す場合は、その結果をそのまま使用する。
+   // 旧APIとの互換性のため、videoが無い場合だけ従来のrender_videoを呼ぶ。
+   let x=data.video ? {ok:true,...data.video} : null;
+   if(!x){
+     const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,results:data.results||[]})});
+     x=await r.json();
+   }
    if(!x.ok)throw new Error(x.error||'render failed');
    const videoUrl=API_URL+x.video_url+'?t='+Date.now();
    v.src=videoUrl;
