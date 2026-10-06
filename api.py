@@ -1,4 +1,4 @@
-import os, re, json
+import os, re, json, base64, urllib.request
 from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +9,7 @@ from pathlib import Path
 import uuid
 import subprocess
 
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
@@ -95,6 +95,12 @@ async def render_video(req: dict[str, Any]):
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 client = AsyncOpenAI(api_key=API_KEY) if API_KEY else None
+
+# Gemini TTS は明示的に有効化した場合だけ呼び出す（勝手な課金を防止）。
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_TTS_ENABLED = os.getenv("GEMINI_TTS_ENABLED", "false").lower() == "true"
+GEMINI_TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
+GEMINI_TTS_VOICE = os.getenv("GEMINI_TTS_VOICE", "Kore")
 
 # 正本：11担当（統括AI + 専門10担当）
 ROLES = [
@@ -279,7 +285,45 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100"}
+    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100", "gemini_tts_configured": bool(GEMINI_API_KEY), "gemini_tts_enabled": GEMINI_TTS_ENABLED, "gemini_tts_model": GEMINI_TTS_MODEL}
+
+def _gemini_tts_wav(text: str, out_path: Path) -> tuple[bool, str]:
+    if not GEMINI_TTS_ENABLED:
+        return False, "disabled"
+    if not GEMINI_API_KEY:
+        return False, "api_key_missing"
+    transcript = clean(text)[:360]
+    if not transcript:
+        return False, "empty_text"
+    payload = {
+        "contents": [{
+            "role": "user",
+            "parts": [{
+                "text": transcript,
+                "speech_metadata": {
+                    "style": "Japanese short-form video narrator. Natural, warm, conversational, energetic but not exaggerated. Speak clearly with short pauses. Do not sound like reading a proposal or report."
+                }
+            }]
+        }],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"voice": GEMINI_TTS_VOICE}}
+        }
+    }
+    req = urllib.request.Request(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_TTS_MODEL}:generateContent",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        audio_b64 = data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
+        out_path.write_bytes(base64.b64decode(audio_b64))
+        return True, "gemini_tts"
+    except Exception:
+        return False, "tts_request_failed"
 
 def _render_video_files(instruction: str, results: list[dict[str, Any]], change_request: str = "") -> dict[str, Any]:
     job=uuid.uuid4().hex
@@ -301,19 +345,40 @@ def _render_video_files(instruction: str, results: list[dict[str, Any]], change_
     out=VIDEO_DIR/f"{job}.mp4"
     ff=imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
-        ff,"-y","-framerate","1/5","-i",str(work/"%02d.png"),
+        ff,"-y","-framerate","1/4","-i",str(work/"%02d.png"),
         "-vf","fps=30","-c:v","libx264","-profile:v","main","-level","3.1",
         "-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
     ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+
+    narration=_narration_text(instruction,results)
+    wav=work/"narration.wav"
+    tts_ok, tts_status = _gemini_tts_wav(narration, wav)
+    final_out=out
+    audio_embedded=False
+    if tts_ok and wav.exists():
+        muxed=VIDEO_DIR/f"{job}_with_audio.mp4"
+        subprocess.run([
+            ff,"-y","-i",str(out),"-i",str(wav),
+            "-map","0:v:0","-map","1:a:0",
+            "-c:v","copy","-c:a","aac","-b:a","128k",
+            "-shortest","-movflags","+faststart",str(muxed)
+        ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+        final_out=muxed
+        audio_embedded=True
+
     return {
-        "video_url":f"/videos/{out.name}",
+        "video_url":f"/videos/{final_out.name}",
         "poster_url":f"/videos/{job}/00.png",
+        "audio_url":f"/videos/{job}/narration.wav" if tts_ok else None,
         "video_id":job,
-        "duration_seconds":35,
+        "duration_seconds":28,
         "renderer":"ffmpeg-safe-renderer",
-        "narration_text":_narration_text(instruction,results),
-        "audio_embedded":False,
-        "audio_note":"課金なし・権利確認済みの外部TTSは自動接続せず、iPhone側でナレーション確認します。",
+        "narration_text":narration,
+        "audio_embedded":audio_embedded,
+        "tts_provider":"Gemini 3.8 Flash TTS" if audio_embedded else "browser-fallback",
+        "tts_status":tts_status,
+        "audio_note":("Gemini TTS音声をMP4へ埋め込み済み。" if audio_embedded
+                      else "Gemini TTS未有効。iPhoneのナレーション確認へ安全にフォールバックします。"),
         "change_request_applied":bool(change_request)
     }
 
