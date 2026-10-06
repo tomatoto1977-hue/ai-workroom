@@ -9,7 +9,7 @@ from pathlib import Path
 import uuid
 import subprocess
 
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.3.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
@@ -139,6 +139,168 @@ def safety_rules() -> str:
         "素材は自作、適切なライセンス、公式に利用許諾されたもの、または権利関係を確認できる素材に限定する。"
         "未確認情報は断定せず、出典と確認日を残す。公開・投稿・外部操作は人間承認後のみ。"
     )
+
+
+# -------------------- Live Theme Engine --------------------
+THEME_HISTORY_FILE = Path(os.getenv("THEME_HISTORY_FILE", "/tmp/ai_workroom_theme_history.json"))
+THEME_AUTO_ENABLED = os.getenv("THEME_AUTO_ENABLED", "true").lower() == "true"
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
+YOUTUBE_TREND_RESEARCH_ENABLED = os.getenv("YOUTUBE_TREND_RESEARCH_ENABLED", "false").lower() == "true"
+THEME_FETCH_TIMEOUT = int(os.getenv("THEME_FETCH_TIMEOUT", "12"))
+
+def _theme_history() -> list[dict[str, Any]]:
+    try:
+        if THEME_HISTORY_FILE.exists():
+            data = json.loads(THEME_HISTORY_FILE.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+    except Exception:
+        pass
+    return []
+
+def _save_theme_history(history: list[dict[str, Any]]) -> None:
+    try:
+        THEME_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        THEME_HISTORY_FILE.write_text(json.dumps(history[-40:], ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+def _norm_topic(s: str) -> str:
+    return re.sub(r"[【】「」『』\[\]（）()・:：,，.!！?？\s]+", "", str(s or "")).lower()[:180]
+
+def _topic_tokens(s: str) -> set[str]:
+    return set(re.findall(r"[一-龥ぁ-んァ-ヶA-Za-z0-9]{2,}", clean(s)))
+
+def _similar_topic(a: str, b: str) -> float:
+    na, nb = _norm_topic(a), _norm_topic(b)
+    if not na or not nb: return 0.0
+    if na in nb or nb in na: return 1.0
+    ta, tb = _topic_tokens(a), _topic_tokens(b)
+    return len(ta & tb) / max(1, len(ta | tb))
+
+def _blocked_theme(text: str) -> bool:
+    blocked = ["芸能","アイドル","俳優","女優","歌手","タレント","声優","モデル","YouTuber",
+               "インフルエンサー","著名人","芸能人","不倫","熱愛","結婚発表","交際","炎上",
+               "スキャンダル","ゴシップ","肖像","人物画像"]
+    return any(x in clean(text) for x in blocked)
+
+def _fetch_google_trends_jp() -> list[dict[str, Any]]:
+    url="https://trends.google.com/trending/rss?geo=JP"
+    req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 AI-Workroom/2.3"})
+    try:
+        with urllib.request.urlopen(req,timeout=THEME_FETCH_TIMEOUT) as resp:
+            raw=resp.read()
+        import xml.etree.ElementTree as ET
+        root=ET.fromstring(raw)
+        out=[]
+        for item in root.findall(".//item")[:30]:
+            title=clean(item.findtext("title",""))
+            traffic=clean(item.findtext("ht:approx_traffic","",namespaces={"ht":"https://trends.google.com/trending/rss"}))
+            pub=clean(item.findtext("pubDate",""))
+            link=clean(item.findtext("link",""))
+            if title: out.append({"title":title,"traffic":traffic,"published_at":pub,"url":link,"source":"Google Trends Japan"})
+        return out
+    except Exception as e:
+        return [{"error":type(e).__name__}]
+
+def _fetch_google_news(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    import urllib.parse
+    q=urllib.parse.quote(query)
+    url=f"https://news.google.com/rss/search?q={q}&hl=ja&gl=JP&ceid=JP:ja"
+    req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 AI-Workroom/2.3"})
+    try:
+        with urllib.request.urlopen(req,timeout=THEME_FETCH_TIMEOUT) as resp: raw=resp.read()
+        import xml.etree.ElementTree as ET
+        root=ET.fromstring(raw)
+        return [{"title":clean(x.findtext("title","")),"published_at":clean(x.findtext("pubDate","")),
+                 "url":clean(x.findtext("link","")),"source":"Google News"}
+                for x in root.findall(".//item")[:limit]]
+    except Exception:
+        return []
+
+def _youtube_video_signals(query: str, max_results: int = 3) -> list[dict[str, Any]]:
+    if not (YOUTUBE_TREND_RESEARCH_ENABLED and YOUTUBE_API_KEY): return []
+    import urllib.parse
+    params=urllib.parse.urlencode({
+        "part":"snippet","q":query,"type":"video","order":"viewCount","maxResults":max_results,
+        "videoDuration":"short","publishedAfter":"2026-09-29T00:00:00Z","key":YOUTUBE_API_KEY})
+    try:
+        req=urllib.request.Request("https://www.googleapis.com/youtube/v3/search?"+params,
+                                   headers={"User-Agent":"AI-Workroom/2.3"})
+        with urllib.request.urlopen(req,timeout=THEME_FETCH_TIMEOUT) as resp: data=json.loads(resp.read().decode("utf-8"))
+        return [{"video_id":x.get("id",{}).get("videoId"),"title":clean(x.get("snippet",{}).get("title","")),
+                 "published_at":x.get("snippet",{}).get("publishedAt"),
+                 "channel":clean(x.get("snippet",{}).get("channelTitle","")),"source":"YouTube Data API"}
+                for x in data.get("items",[]) if x.get("id",{}).get("videoId")]
+    except Exception:
+        return []
+
+def _theme_title(raw: str) -> str:
+    raw=clean(raw)
+    if _blocked_theme(raw): return ""
+    transforms=[
+        (r"^(日本対.+|.+対日本)$","今話題のスポーツ情報を安全に見るポイント"),
+        (r"^トリプル台風.*$","台風シーズンに確認したい最新の備え"),
+        (r"^出産$","出産前後に確認したい公的支援と家計"),
+    ]
+    for pat,title in transforms:
+        if re.search(pat,raw,re.I): return title
+    return f"{raw}を生活に役立つ形で解説"
+
+def _candidate_score(c: dict[str, Any], history: list[dict[str, Any]]) -> int:
+    traffic=str(c.get("traffic",""))
+    score=30 if "20万" in traffic else 26 if "10万" in traffic else 22 if "5万" in traffic else 18 if "2万" in traffic else 12
+    if c.get("news_count",0)>0: score+=20
+    if c.get("youtube_count",0)>0: score+=25
+    score+=20+15
+    if _blocked_theme(c.get("raw","")): score-=50
+    for old in history[-30:]:
+        sim=_similar_topic(c.get("theme",""),old.get("theme",""))
+        if sim>=0.75: score-=40
+        elif sim>=0.45: score-=20
+    return max(0,min(100,score))
+
+async def select_live_theme() -> dict[str, Any]:
+    history=_theme_history()
+    trends=[x for x in _fetch_google_trends_jp() if x.get("title") and not x.get("error")]
+    candidates=[]
+    for t in trends[:20]:
+        theme=_theme_title(t["title"])
+        if not theme: continue
+        news=_fetch_google_news(t["title"],3)
+        videos=_youtube_video_signals(t["title"],3)
+        c={"theme":theme,"raw":t["title"],"traffic":t.get("traffic",""),"published_at":t.get("published_at",""),
+           "trend_url":t.get("url",""),"news_count":len(news),"youtube_count":len(videos),
+           "sources":[{"type":"Google Trends Japan","title":t["title"],"url":t.get("url","")}],
+           "news":news,"youtube_videos":videos}
+        if news: c["sources"].append({"type":"Google News","query":t["title"],"url":news[0].get("url","")})
+        if videos: c["sources"].append({"type":"YouTube Data API","query":t["title"]})
+        c["score"]=_candidate_score(c,history)
+        candidates.append(c)
+    candidates.sort(key=lambda x:(x["score"],x.get("published_at","")),reverse=True)
+    if candidates:
+        top=candidates[:min(8,len(candidates))]
+        from datetime import datetime,timezone
+        slot=int(datetime.now(timezone.utc).timestamp()//21600)
+        chosen=(top[slot%len(top):]+top[:slot%len(top)])[0]
+    else:
+        fallback=["電気代を下げるために今月見直したいポイント","スマホ料金を見直すときの3つのチェック項目",
+                  "サブスクを整理するときに見落としやすい費用","食品ロスを減らしながら食費を整える方法",
+                  "家計簿が続かない人向けの簡単な見直し方"]
+        chosen={"theme":fallback[len(history)%len(fallback)],"raw":"","traffic":"","score":35,
+                "sources":[],"news":[],"youtube_videos":[],"fallback":True}
+    from datetime import datetime,timezone
+    selected_at=datetime.now(timezone.utc).isoformat()
+    history.append({"theme":chosen["theme"],"raw":chosen.get("raw",""),"selected_at":selected_at})
+    _save_theme_history(history)
+    return {"title":chosen["theme"],"raw_trend":chosen.get("raw",""),"score":chosen.get("score",0),
+            "traffic":chosen.get("traffic",""),"sources":chosen.get("sources",[]),
+            "youtube_videos":chosen.get("youtube_videos",[]),"news":chosen.get("news",[]),
+            "selected_at":selected_at,"fallback":bool(chosen.get("fallback",False)),
+            "engine":"google-trends-jp + google-news + optional-youtube",
+            "youtube_research_enabled":bool(YOUTUBE_TREND_RESEARCH_ENABLED and YOUTUBE_API_KEY),
+            "note":"トレンドを転載せず、生活者向けの独自テーマへ変換。権利不明動画は取得・使用しない。"}
+# ------------------ End Live Theme Engine ------------------
+
 
 def template_pack(instruction: str) -> dict[str, str]:
     topic = clean(instruction)
@@ -285,7 +447,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100", "gemini_tts_configured": bool(GEMINI_API_KEY), "gemini_tts_enabled": GEMINI_TTS_ENABLED, "gemini_tts_model": GEMINI_TTS_MODEL}
+    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100", "gemini_tts_configured": bool(GEMINI_API_KEY), "gemini_tts_enabled": GEMINI_TTS_ENABLED, "gemini_tts_model": GEMINI_TTS_MODEL, "theme_engine": "live", "theme_auto_enabled": THEME_AUTO_ENABLED, "youtube_trend_research_enabled": bool(YOUTUBE_TREND_RESEARCH_ENABLED and YOUTUBE_API_KEY)}
 
 def _gemini_tts_wav(text: str, out_path: Path) -> tuple[bool, str]:
     if not GEMINI_TTS_ENABLED:
@@ -436,6 +598,10 @@ async def revise(req: ReviseRequest):
         "note": "実AI未接続時は編集を完了扱いにせず、人間確認待ち。"
     }
 
+@app.get("/api/theme")
+async def theme_endpoint():
+    return {"ok": True, "theme": await select_live_theme()}
+
 @app.get("/api/orchestrate_get")
 async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700):
     # iPhone/SafariでJSON POSTのCORS preflightが失敗する場合に備えた単純GET経路。
@@ -466,6 +632,20 @@ async def orchestrate(req: RunRequest):
                 pass
         return {"ok": True, "mode": "local_template", "openai_configured": bool(client), "results": [{"role": "統括AI", "status": "simulated", "stage": "最終リーガルチェック", "text": text}]}
 
+    # 自動テーマモードでは固定文を使わず、ライブデータからテーマを再選定。
+    selected_theme = None
+    original_instruction = req.instruction.strip()
+    auto_theme_request = THEME_AUTO_ENABLED and (
+        "毎日の情報収集から視聴者に役立つテーマを選び" in original_instruction
+        or "テーマ選出→リサーチ→企画→制作→品質確認" in original_instruction
+        or original_instruction == "節約・家計ショート動画"
+    )
+    if auto_theme_request:
+        selected_theme = await select_live_theme()
+        req.instruction = selected_theme["title"] + (
+            "\n【自動テーマ選出】Google Trends Japanを起点に、Google Newsの関連情報と過去テーマ重複を確認。"
+            "特定人物・著作権リスクの高い題材は除外し、生活者向けの独自切り口へ変換する。"
+        )
     base_map = template_pack(req.instruction)
     base = pack_text({k:v for k,v in base_map.items() if k != "統括AI"})
     refined = await refine(req.instruction, base, req.max_output_tokens)
@@ -514,5 +694,5 @@ async def orchestrate(req: RunRequest):
         "openai_configured": bool(client), "model": MODEL if client else None,
         "roles": [r[0] for r in ROLES], "role_count": len(ROLES),
         "safety_rules": safety_rules(), "workflow": workflow, "gate": gate, "results": results,
-        "video": video
+        "video": video, "selected_theme": selected_theme, "requested_instruction": original_instruction
     }
