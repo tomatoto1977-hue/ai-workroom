@@ -107,7 +107,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </section>
 <section class="final-card result-card">
       <div class="result-head"><strong>🎬 最新の成果物</strong><span class="result-badge" id="resultBadge">確認待ち</span></div>
-      <div class="video-preview" id="videoPreview"><video id="completedVideo" controls playsinline webkit-playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div>
+      <div class="video-preview" id="videoPreview"><img id="videoPosterFallback" alt="完成動画のプレビュー" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"><video id="completedVideo" controls playsinline webkit-playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><a id="videoOpenLink" href="#" target="_blank" rel="noopener" style="display:none;font-size:13px;text-decoration:none">↗ 動画を別画面で開く</a></div>
       <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="playNarration()">🔊 ナレーション</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
     </section>
   </div>
@@ -411,8 +411,16 @@ async function reviseFromRequest(){
    if(data.video?.video_url){
      const v=document.getElementById('completedVideo');
      if(v){
-       v.src=API_URL+data.video.video_url+'?t='+Date.now();
-       if(data.video.poster_url) v.poster=API_URL+data.video.poster_url+'?t='+Date.now();
+       const revisedVideoUrl=API_URL+data.video.video_url+'?t='+Date.now();
+       v.src=revisedVideoUrl;
+       if(data.video.poster_url){
+         const revisedPosterUrl=API_URL+data.video.poster_url+'?t='+Date.now();
+         v.poster=revisedPosterUrl;
+         const poster=document.getElementById('videoPosterFallback');
+         if(poster){poster.src=revisedPosterUrl;poster.style.display='block';}
+       }
+       const openLink=document.getElementById('videoOpenLink');
+       if(openLink){openLink.href=revisedVideoUrl;openLink.style.display='inline';}
        v.load();
        state.videoUrl=v.src;
        state.videoReady=true;
@@ -478,9 +486,19 @@ async function renderCompletedVideo(data){
    const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,results:data.results||[]})});
    const x=await r.json();
    if(!x.ok)throw new Error(x.error||'render failed');
-   v.src=API_URL+x.video_url+'?t='+Date.now();
-   if(x.poster_url) v.poster=API_URL+x.poster_url+'?t='+Date.now();
+   const videoUrl=API_URL+x.video_url+'?t='+Date.now();
+   v.src=videoUrl;
+   if(x.poster_url){
+     const posterUrl=API_URL+x.poster_url+'?t='+Date.now();
+     v.poster=posterUrl;
+     const poster=document.getElementById('videoPosterFallback');
+     if(poster){poster.src=posterUrl;poster.style.display='block';}
+   }
+   const openLink=document.getElementById('videoOpenLink');
+   if(openLink){openLink.href=videoUrl;openLink.style.display='inline';}
    v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
+   v.onplay=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='none';};
+   v.onerror=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='block';};
    v.style.display='block'; if(empty)empty.style.display='none';
    state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
    document.getElementById('resultBadge').textContent=x.audio_embedded?'MP4完成・ナレーション付き':'MP4完成・確認待ち';
