@@ -328,20 +328,35 @@ async function playWorkflow(data){
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 async function startFirstVideo(){
-
  const btn=document.getElementById('firstVideoButton');
- if(workflowRunning){document.getElementById('revisionStatusFinal').textContent='現在の制作工程が進行中です';return;}
+ const next=document.getElementById('nextAction');
+ const status=document.getElementById('finalStatus');
+ const rev=document.getElementById('revisionStatus');
+ if(workflowRunning){
+   if(rev) rev.textContent='現在の制作工程が進行中です。完了までお待ちください。';
+   return;
+ }
  const instruction=(state.instruction&&state.instruction!=='節約・家計ショート動画')
    ? state.instruction
    : '毎日の情報収集から視聴者に役立つテーマを選び、著作権・特定人物への依存を避けたショート動画を初回制作する。テーマ選出→リサーチ→企画→制作→品質確認まで実行する。';
  const input=document.getElementById('instruction');
  if(input) input.value=instruction;
  if(btn){btn.disabled=true;btn.textContent='制作開始…';}
- document.getElementById('nextAction').textContent='テーマ選出・リサーチを開始しています';
- document.getElementById('finalStatus').textContent='● 初回動画の制作中';
- log('統括AI：初回動画制作を開始 → テーマ選出から実行');
- try{ await send(); }
- finally{ if(btn){btn.disabled=false;btn.textContent='初回動画を作る';} syncFinalUI(); }
+ if(next) next.textContent='制作リクエストを送信しています…';
+ if(status) status.textContent='● API接続・制作リクエスト中';
+ log('統括AI：初回動画ボタンを検知。APIへ接続します');
+ try{
+   await send();
+ }catch(e){
+   const msg=String(e&&e.message||e).slice(0,120);
+   if(next) next.textContent='制作開始に失敗：'+msg;
+   if(status) status.textContent='● 接続エラー（詳細ログを確認）';
+   if(rev) rev.textContent='制作開始に失敗しました。画面を閉じずに再度お試しください。詳細：'+msg;
+   log('初回動画ボタン：送信前にエラー '+msg);
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent='初回動画を作る';}
+   try{syncFinalUI();}catch(e){log('画面更新エラー：'+String(e&&e.message||e).slice(0,80));}
+ }
 }
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
@@ -534,7 +549,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
   if(window.caches) caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});
 }
-window.__AI_WORKROOM_BUILD='20261009-video-e2e-reconnect-1';</script>
+window.__AI_WORKROOM_BUILD='20261009-video-e2e-diagnostic-2';</script>
 <script>
 function syncThemeFlow(){
  const steps=document.querySelectorAll('#themeFlow .flow-step');
