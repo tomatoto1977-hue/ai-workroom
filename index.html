@@ -358,8 +358,19 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
  x.value='';start();render();
  try{
    const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700'});
-   const r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
-   const data=await r.json();
+   let r=null, data=null, lastError=null;
+   for(let attempt=0;attempt<2;attempt++){
+     try{
+       r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+       if(!r.ok) throw new Error('HTTP '+r.status);
+       data=await r.json();
+       break;
+     }catch(e){
+       lastError=e;
+       if(attempt===0) await new Promise(resolve=>setTimeout(resolve,1800));
+     }
+   }
+   if(!data) throw lastError||new Error('API response unavailable');
    if(data.selected_theme){
      state.instruction=data.selected_theme.title||state.instruction;
      document.getElementById('projectTitle').textContent='現在のプロジェクト：'+state.instruction.slice(0,34)+(state.instruction.length>34?'…':'');
@@ -488,21 +499,32 @@ async function reviseFromRequest(){
  }
 }
 async function checkApi(){
- try{
-  const r=await fetch(API_URL+'/health',{cache:'no-store'});
-  const d=await r.json();
+ const setConnected=(d)=>{
   apiOnline=!!d.ok; apiConfigured=!!d.openai_configured;
   if(apiOnline&&apiConfigured){
    document.getElementById('status').textContent='● LIVE　実AI接続済み・統括AIが全工程を管理';
    log('AI API：接続済み。実AIモードで稼働可能（'+(d.model||'モデル')+'）');
   }else if(apiOnline){
    document.getElementById('status').textContent='● LIVE　安全なシミュレーション中（実AI APIキー待ち）';
-   log('AI API：サーバー接続済み。OPENAI_API_KEY設定待ち');
+   log('AI API：サーバー接続済み。サーバーは接続済みです');
   }
- }catch(e){
-  apiOnline=false; apiConfigured=false;
-  document.getElementById('status').textContent='● LIVE　API接続確認中';
+ };
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   const r=await fetch(API_URL+'/health?ts='+Date.now(),{cache:'no-store'});
+   if(!r.ok) throw new Error('HTTP '+r.status);
+   const d=await r.json();
+   setConnected(d);
+   return;
+  }catch(e){
+   await new Promise(resolve=>setTimeout(resolve,Math.min(2500,700*(attempt+1))));
+  }
  }
+ // APIがスリープ中でも「初回動画を作る」操作を止めない。
+ // 次の制作リクエストでRenderが起動するため、誤って「接続不能」と表示しない。
+ apiOnline=false; apiConfigured=false;
+ document.getElementById('status').textContent='● LIVE　API起動確認中（制作開始で自動再接続）';
+ log('AI API：初回確認はタイムアウト。制作開始時に自動再接続します');
 }
 function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
@@ -512,7 +534,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
   if(window.caches) caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});
 }
-window.__AI_WORKROOM_BUILD='20261006-video-fix-2';</script>
+window.__AI_WORKROOM_BUILD='20261009-video-e2e-reconnect-1';</script>
 <script>
 function syncThemeFlow(){
  const steps=document.querySelectorAll('#themeFlow .flow-step');
