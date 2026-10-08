@@ -63,7 +63,8 @@ class PipelineConfig:
     bgm_bpm: int = 150
     bgm_intensity: float = 1.45
     # Local free-first music generation. The adapter is optional and never auto-publishes.
-    music_provider: str = "ace_step_local"
+    music_provider: str = "ace_step_local"  # none / ace_step_local / imported_audio
+    music_source_path: Optional[Path] = None
     music_genre: str = "rock"
     music_duration_s: float = 30.0
     music_vocals: bool = True
@@ -113,8 +114,10 @@ def validate_config(cfg: PipelineConfig) -> None:
         raise SafetyError("paid_operations must remain False")
     if cfg.width != cfg.safe_area.width or cfg.height != cfg.safe_area.height:
         raise ValueError("safe-area dimensions must match render dimensions")
-    if cfg.music_provider not in {"none", "ace_step_local"}:
+    if cfg.music_provider not in {"none", "ace_step_local", "imported_audio"}:
         raise ValueError("unsupported music provider")
+    if cfg.music_provider == "imported_audio" and cfg.music_source_path is None:
+        raise ValueError("music_source_path is required for imported_audio")
     if cfg.music_duration_s < 10 or cfg.music_duration_s > 600:
         raise ValueError("music_duration_s must be between 10 and 600 seconds")
     if not cfg.music_language.strip():
@@ -179,6 +182,7 @@ def make_qa_report(
         "auto_publish": cfg.auto_publish,
         "paid_operations": cfg.paid_operations,
         "music_provider": cfg.music_provider,
+        "music_source_path": str(cfg.music_source_path) if cfg.music_source_path else None,
         "music_genre": cfg.music_genre,
         "music": bool(music_path),
         "narration": bool(narration_path),
@@ -225,6 +229,7 @@ def default_short_config() -> PipelineConfig:
         bgm_bpm=150,
         bgm_intensity=1.45,
         music_provider="ace_step_local",
+        music_source_path=None,
         music_genre="rock",
         music_duration_s=30.0,
         music_vocals=True,
