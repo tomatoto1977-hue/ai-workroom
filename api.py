@@ -9,7 +9,7 @@ from pathlib import Path
 import uuid
 import subprocess
 
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.4.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
@@ -507,6 +507,7 @@ def _render_video_files(
         raise ValueError("unsupported music provider")
     job=uuid.uuid4().hex
     work=VIDEO_DIR/job
+    work.mkdir(parents=True,exist_ok=True)
     music_path = None
     music_status = "none"
     music_prompt = ""
@@ -533,7 +534,6 @@ def _render_video_files(
         music_status = "imported"
     elif music_provider == "ace_step_local":
         music_status = "local_required"
-    work.mkdir(parents=True,exist_ok=True)
     cards=[
         ("テーマ選出",instruction,"01 / THEME"),
         ("リサーチ","根拠・需要・権利を確認\\n未確認情報は断定しません","02 / RESEARCH"),
