@@ -87,7 +87,13 @@ async def render_video(req: dict[str, Any]):
         instruction=str(req.get("instruction","初回動画")).strip() or "初回動画"
         results=req.get("results") or []
         change_request=str(req.get("change_request","")).strip()
-        return {"ok":True, **_render_video_files(instruction,results,change_request)}
+        return {"ok":True, **_render_video_files(
+            instruction, results, change_request,
+            str(req.get("music_provider","none")),
+            str(req.get("music_audio_base64","")),
+            str(req.get("music_filename","")),
+            str(req.get("music_genre","rock")),
+        )}
     except Exception as e:
         return {"ok":False,"error":"MP4 rendering failed","detail":str(e)[:500]}
 
@@ -487,9 +493,46 @@ def _gemini_tts_wav(text: str, out_path: Path) -> tuple[bool, str]:
     except Exception:
         return False, "tts_request_failed"
 
-def _render_video_files(instruction: str, results: list[dict[str, Any]], change_request: str = "") -> dict[str, Any]:
+def _render_video_files(
+    instruction: str,
+    results: list[dict[str, Any]],
+    change_request: str = "",
+    music_provider: str = "none",
+    music_audio_base64: str = "",
+    music_filename: str = "",
+    music_genre: str = "rock",
+) -> dict[str, Any]:
+    allowed_music = {"none", "ace_step_local", "suno_manual", "imported_audio"}
+    if music_provider not in allowed_music:
+        raise ValueError("unsupported music provider")
     job=uuid.uuid4().hex
     work=VIDEO_DIR/job
+    music_path = None
+    music_status = "none"
+    music_prompt = ""
+    if music_provider == "suno_manual":
+        music_prompt = (
+            f"Style: {music_genre}, energetic, catchy, original Japanese short-form song. "
+            "Clear vocals, strong hook in the first seconds, no artist imitation. "
+            f"Theme: {instruction[:180]}"
+        )
+        music_status = "manual_required"
+    elif music_provider == "imported_audio" and music_audio_base64:
+        raw = music_audio_base64.split(",", 1)[-1]
+        try:
+            audio_bytes = base64.b64decode(raw, validate=True)
+        except Exception as exc:
+            raise ValueError("invalid music audio data") from exc
+        if len(audio_bytes) > 12 * 1024 * 1024:
+            raise ValueError("music audio exceeds 12MB safety limit")
+        suffix = Path(music_filename or "music.wav").suffix.lower()
+        if suffix not in {".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg"}:
+            raise ValueError("unsupported imported music format")
+        music_path = work / ("music" + suffix)
+        music_path.write_bytes(audio_bytes)
+        music_status = "imported"
+    elif music_provider == "ace_step_local":
+        music_status = "local_required"
     work.mkdir(parents=True,exist_ok=True)
     cards=[
         ("テーマ選出",instruction,"01 / THEME"),
@@ -517,14 +560,24 @@ def _render_video_files(instruction: str, results: list[dict[str, Any]], change_
     tts_ok, tts_status = _gemini_tts_wav(narration, wav)
     final_out=out
     audio_embedded=False
+    audio_inputs=[]
     if tts_ok and wav.exists():
+        audio_inputs.append(wav)
+    if music_path and music_path.exists():
+        audio_inputs.append(music_path)
+    if audio_inputs:
         muxed=VIDEO_DIR/f"{job}_with_audio.mp4"
-        subprocess.run([
-            ff,"-y","-i",str(out),"-i",str(wav),
-            "-map","0:v:0","-map","1:a:0",
-            "-c:v","copy","-c:a","aac","-b:a","128k",
-            "-shortest","-movflags","+faststart",str(muxed)
-        ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
+        cmd=[ff,"-y","-i",str(out)]
+        for ap in audio_inputs:
+            cmd += ["-i",str(ap)]
+        if len(audio_inputs) == 2:
+            filter_graph="[1:a]volume=0.85[a1];[2:a]volume=0.35[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[outa]"
+        else:
+            filter_graph="[1:a]anull[outa]"
+        cmd += ["-filter_complex",filter_graph,"-map","0:v:0","-map","[outa]",
+                "-c:v","copy","-c:a","aac","-b:a","160k",
+                "-shortest","-movflags","+faststart",str(muxed)]
+        subprocess.run(cmd,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
         final_out=muxed
         audio_embedded=True
 
@@ -544,8 +597,16 @@ def _render_video_files(instruction: str, results: list[dict[str, Any]], change_
         "audio_embedded":audio_embedded,
         "tts_provider":"Gemini 3.8 Flash TTS" if audio_embedded else "browser-fallback",
         "tts_status":tts_status,
-        "audio_note":("Gemini TTS音声をMP4へ埋め込み済み。" if audio_embedded
-                      else "Gemini TTS未有効。iPhoneのナレーション確認へ安全にフォールバックします。"),
+        "music_provider": music_provider,
+        "music_status": music_status,
+        "music_genre": music_genre,
+        "music_prompt": music_prompt,
+        "audio_note":(
+            "音楽＋ナレーションをMP4へミックス済み。" if music_path and tts_ok
+            else "外部音源をMP4へ埋め込み済み。" if music_path
+            else "ナレーションのみMP4へ埋め込み済み。" if tts_ok
+            else "音源未投入。安全に無音/ブラウザ確認へフォールバック。"
+        ),
         "change_request_applied":bool(change_request)
     }
 
