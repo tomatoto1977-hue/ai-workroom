@@ -515,13 +515,13 @@ def _video_file_qa(video_path: Path) -> dict[str, Any]:
     try:
         p = subprocess.run([ff, "-hide_banner", "-i", str(video_path)], capture_output=True, text=True, timeout=30)
         info = (p.stderr or "")
-        m = re.search(r"(\\d{2,5})x(\\d{2,5})", info)
+        m = re.search(r"(\d{2,5})x(\d{2,5})", info)
         if m:
             report["resolution"] = [int(m.group(1)), int(m.group(2))]
-        m = re.search(r"Duration: (\\d+):(\\d+):(\\d+(?:\\.\\d+)?)", info)
+        m = re.search(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)", info)
         if m:
             report["duration_seconds"] = round(int(m.group(1))*3600 + int(m.group(2))*60 + float(m.group(3)), 2)
-        m = re.search(r"(\\d+(?:\\.\\d+)?) fps", info)
+        m = re.search(r"(\d+(?:\.\d+)?) fps", info)
         if m:
             report["fps"] = float(m.group(1))
         report["has_video"] = "Video:" in info
