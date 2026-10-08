@@ -5,7 +5,7 @@ Safe-by-default short-video pipeline:
 AI image per scene -> TikTok safe-area placement -> kinetic captions -> motion
 -> original/licensed audio -> optional narration -> automated QA.
 
-This module is intentionally provider-agnostic. AI image/TTS providers are injected
+This module is intentionally provider-agnostic. AI image/TTS/music providers are injected
 through adapters so the core pipeline never performs external posting or paid actions
 implicitly.
 """
@@ -15,7 +15,6 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Protocol, Sequence, Optional
 import json
-import math
 import subprocess
 
 
@@ -63,6 +62,12 @@ class PipelineConfig:
     max_subline_lines: int = 0
     bgm_bpm: int = 150
     bgm_intensity: float = 1.45
+    # Local free-first music generation. The adapter is optional and never auto-publishes.
+    music_provider: str = "ace_step_local"
+    music_genre: str = "rock"
+    music_duration_s: float = 30.0
+    music_vocals: bool = True
+    music_language: str = "ja"
     require_human_review: bool = True
     auto_publish: bool = False
     external_operations: bool = False
@@ -81,6 +86,20 @@ class NarrationProvider(Protocol):
         ...
 
 
+class MusicProvider(Protocol):
+    def generate(
+        self,
+        lyrics: str,
+        output_path: Path,
+        *,
+        genre: str,
+        duration_s: float,
+        bpm: int | None = None,
+        mood: str = "",
+    ) -> Path:
+        ...
+
+
 class SafetyError(RuntimeError):
     pass
 
@@ -94,6 +113,12 @@ def validate_config(cfg: PipelineConfig) -> None:
         raise SafetyError("paid_operations must remain False")
     if cfg.width != cfg.safe_area.width or cfg.height != cfg.safe_area.height:
         raise ValueError("safe-area dimensions must match render dimensions")
+    if cfg.music_provider not in {"none", "ace_step_local"}:
+        raise ValueError("unsupported music provider")
+    if cfg.music_duration_s < 10 or cfg.music_duration_s > 600:
+        raise ValueError("music_duration_s must be between 10 and 600 seconds")
+    if not cfg.music_language.strip():
+        raise ValueError("music_language must not be empty")
 
 
 def build_scene_prompts(topic: str, scenes: Sequence[Scene]) -> list[str]:
@@ -142,6 +167,7 @@ def make_qa_report(
     cfg: PipelineConfig,
     scenes: Sequence[Scene],
     narration_path: Optional[Path] = None,
+    music_path: Optional[Path] = None,
 ) -> dict:
     """Non-destructive final QA. Returns PASS/REVIEW; never publishes."""
     report = {
@@ -152,6 +178,9 @@ def make_qa_report(
         "human_review_required": cfg.require_human_review,
         "auto_publish": cfg.auto_publish,
         "paid_operations": cfg.paid_operations,
+        "music_provider": cfg.music_provider,
+        "music_genre": cfg.music_genre,
+        "music": bool(music_path),
         "narration": bool(narration_path),
         "scene_errors": {},
         "checks": {},
@@ -164,6 +193,9 @@ def make_qa_report(
 
     report["checks"]["safe_area_defined"] = True
     report["checks"]["all_scenes_valid"] = not report["scene_errors"]
+    report["checks"]["music_ready"] = (
+        cfg.music_provider == "none" or bool(music_path)
+    )
     report["checks"]["narration_ready"] = (
         (not cfg.narration_required) or bool(narration_path)
     )
@@ -192,6 +224,11 @@ def default_short_config() -> PipelineConfig:
         max_subline_lines=0,
         bgm_bpm=150,
         bgm_intensity=1.45,
+        music_provider="ace_step_local",
+        music_genre="rock",
+        music_duration_s=30.0,
+        music_vocals=True,
+        music_language="ja",
         require_human_review=True,
         auto_publish=False,
         external_operations=False,
