@@ -43,17 +43,19 @@ def _video_font(size: int):
     return ImageFont.load_default()
 
 def _video_card(path: Path, title: str, body: str, step: str):
-    im=Image.new("RGB",(720,1280),(248,240,232))
+    # Shorts/TikTokの正本レンダーは1080x1920の縦9:16。
+    # 上下のSNS UIに重要情報が被らないよう、中央寄りへ配置する。
+    im=Image.new("RGB",(1080,1920),(248,240,232))
     d=ImageDraw.Draw(im)
-    d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,250,245),outline=(217,185,157),width=3)
-    d.text((70,75),"AI WORKROOM",font=_video_font(34),fill=(76,64,57))
-    d.text((70,155),step,font=_video_font(25),fill=(118,84,217))
-    d.text((70,225),title,font=_video_font(50),fill=(65,55,49))
-    y=335
+    d.rounded_rectangle((52,52,1028,1868),radius=52,fill=(255,250,245),outline=(217,185,157),width=4)
+    d.text((105,112),"AI WORKROOM",font=_video_font(50),fill=(76,64,57))
+    d.text((105,235),step,font=_video_font(38),fill=(118,84,217))
+    d.text((105,340),title,font=_video_font(75),fill=(65,55,49))
+    y=505
     for line in body.split("\n")[:10]:
-        d.text((70,y),line[:31],font=_video_font(29),fill=(92,79,70)); y+=57
-    d.rounded_rectangle((70,1010,650,1090),radius=18,fill=(139,106,87))
-    d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
+        d.text((105,y),line[:31],font=_video_font(43),fill=(92,79,70)); y+=82
+    d.rounded_rectangle((105,1515,975,1635),radius=27,fill=(139,106,87))
+    d.text((138,1552),"HUMAN APPROVAL REQUIRED",font=_video_font(30),fill=(255,255,255))
     im.save(path)
 
 def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
