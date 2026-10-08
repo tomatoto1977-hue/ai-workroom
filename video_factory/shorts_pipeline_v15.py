@@ -58,6 +58,11 @@ class PipelineConfig:
     crossfade_s: float = 0.45
     ken_burns_zoom: float = 1.08
     caption_pop_s: float = 0.22
+    # Readability guardrails: mobile viewers should never chase dense captions.
+    max_headline_lines: int = 2
+    max_subline_lines: int = 0
+    bgm_bpm: int = 150
+    bgm_intensity: float = 1.45
     require_human_review: bool = True
     auto_publish: bool = False
     external_operations: bool = False
@@ -112,10 +117,16 @@ def validate_scene(scene: Scene) -> list[str]:
     errors: list[str] = []
     if scene.duration_s < 1.0:
         errors.append("scene duration < 1s")
+    headline_lines = [line for line in scene.headline.splitlines() if line.strip()]
+    subline_lines = [line for line in scene.subline.splitlines() if line.strip()]
     if len(scene.headline) > 36:
         errors.append("headline too long for mobile")
+    if len(headline_lines) > 2:
+        errors.append("headline exceeds 2 readable lines")
     if len(scene.subline) > 52:
         errors.append("subline too long for mobile")
+    if len(subline_lines) > 0:
+        errors.append("subline disabled: keep the screen to the two main headline lines")
     if not scene.visual_prompt.strip():
         errors.append("missing visual prompt")
     return errors
@@ -177,6 +188,10 @@ def default_short_config() -> PipelineConfig:
         crossfade_s=0.45,
         ken_burns_zoom=1.08,
         caption_pop_s=0.22,
+        max_headline_lines=2,
+        max_subline_lines=0,
+        bgm_bpm=150,
+        bgm_intensity=1.45,
         require_human_review=True,
         auto_publish=False,
         external_operations=False,
