@@ -495,6 +495,47 @@ def _gemini_tts_wav(text: str, out_path: Path) -> tuple[bool, str]:
     except Exception:
         return False, "tts_request_failed"
 
+def _video_file_qa(video_path: Path) -> dict[str, Any]:
+    """Inspect the finished MP4 without publishing it."""
+    report = {
+        "exists": video_path.exists(),
+        "size_bytes": video_path.stat().st_size if video_path.exists() else 0,
+        "resolution": None,
+        "fps": None,
+        "duration_seconds": None,
+        "has_video": False,
+        "has_audio": False,
+        "status": "REVIEW",
+        "issues": [],
+    }
+    if not video_path.exists():
+        report["issues"].append("file_missing")
+        return report
+    ff = imageio_ffmpeg.get_ffmpeg_exe()
+    try:
+        p = subprocess.run([ff, "-hide_banner", "-i", str(video_path)], capture_output=True, text=True, timeout=30)
+        info = (p.stderr or "")
+        m = re.search(r"(\\d{2,5})x(\\d{2,5})", info)
+        if m:
+            report["resolution"] = [int(m.group(1)), int(m.group(2))]
+        m = re.search(r"Duration: (\\d+):(\\d+):(\\d+(?:\\.\\d+)?)", info)
+        if m:
+            report["duration_seconds"] = round(int(m.group(1))*3600 + int(m.group(2))*60 + float(m.group(3)), 2)
+        m = re.search(r"(\\d+(?:\\.\\d+)?) fps", info)
+        if m:
+            report["fps"] = float(m.group(1))
+        report["has_video"] = "Video:" in info
+        report["has_audio"] = "Audio:" in info
+    except Exception as exc:
+        report["issues"].append(type(exc).__name__)
+        return report
+    if report["resolution"] != [1080, 1920]: report["issues"].append("resolution_not_1080x1920")
+    if not report["has_video"]: report["issues"].append("video_stream_missing")
+    if report["duration_seconds"] is None or report["duration_seconds"] < 10: report["issues"].append("duration_too_short")
+    report["status"] = "PASS" if not report["issues"] else "REVIEW"
+    return report
+
+
 def _render_video_files(
     instruction: str,
     results: list[dict[str, Any]],
@@ -573,7 +614,7 @@ def _render_video_files(
         for ap in audio_inputs:
             cmd += ["-i",str(ap)]
         if len(audio_inputs) == 2:
-            filter_graph="[1:a]volume=0.85[a1];[2:a]volume=0.35[a2];[a1][a2]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[outa]"
+            filter_graph="[1:a]volume=0.85[a1];[2:a]volume=0.35[a2];[a1][a2]amix=inputs=2:duration=longest:dropout_transition=2:normalize=0[outa]"
         else:
             filter_graph="[1:a]anull[outa]"
         cmd += ["-filter_complex",filter_graph,"-map","0:v:0","-map","[outa]",
@@ -597,6 +638,7 @@ def _render_video_files(
         "renderer":"ffmpeg-safe-renderer",
         "narration_text":narration,
         "audio_embedded":audio_embedded,
+        "video_qa": _video_file_qa(final_out),
         "tts_provider":"Gemini 3.8 Flash TTS" if audio_embedded else "browser-fallback",
         "tts_status":tts_status,
         "music_provider": music_provider,
