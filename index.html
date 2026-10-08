@@ -112,6 +112,28 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     </section>
   </div>
 
+  <section class="final-card music-card" id="musicPanel">
+    <div class="result-head"><strong>🎵 音楽制作</strong><span class="result-badge" id="musicStatus">未選択</span></div>
+    <p style="margin:8px 0;color:#806f65;font-size:12px">動画ごとに音楽方式を選択できます。自動投稿・課金操作は行いません。</p>
+    <div style="display:grid;gap:7px">
+      <label><input type="radio" name="musicProvider" value="ace_step_local" checked> ACE-Step（PCローカルAI）</label>
+      <label><input type="radio" name="musicProvider" value="suno_manual"> Suno（手動生成）</label>
+      <label><input type="radio" name="musicProvider" value="imported_audio"> 外部音源（MusicSeed / BandLab / GarageBand）</label>
+      <label><input type="radio" name="musicProvider" value="none"> 音楽なし</label>
+    </div>
+    <div style="display:flex;gap:7px;align-items:center;margin-top:8px">
+      <select id="musicGenre" style="flex:1;padding:9px;border-radius:10px;border:1px solid #ddd">
+        <option value="rock">ロック</option><option value="reggae">レゲエ</option><option value="pop">ポップ</option>
+        <option value="hiphop">ヒップホップ</option><option value="edm">EDM</option><option value="acoustic">アコースティック</option>
+      </select>
+      <input id="musicFile" type="file" accept=".wav,.mp3,.m4a,.aac,.flac,.ogg,audio/*" style="max-width:150px">
+    </div>
+    <div id="sunoPromptBox" style="display:none;margin-top:8px">
+      <button type="button" class="secondary" onclick="makeSunoPrompt()">Suno用指示を作る</button>
+      <textarea id="sunoPrompt" readonly style="width:100%;min-height:90px;margin-top:6px;border-radius:10px;padding:8px"></textarea>
+    </div>
+    <small id="musicHelp" style="display:block;margin-top:7px;color:#806f65">ACE-StepはPC側で生成した音源を取り込む運用が安全です。</small>
+  </section>
   <aside class="final-side">
     <section class="final-card quality-card">
       <h2>✓ 品質監査</h2>
@@ -200,7 +222,12 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  artifact:'',
  revisionRound:0,
  videoUrl:'',
- videoReady:false
+ videoReady:false,
+ musicProvider:'ace_step_local',
+ musicGenre:'rock',
+ musicAudioBase64:'',
+ musicFilename:'',
+ musicPrompt:''
 };
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
@@ -301,6 +328,8 @@ async function playWorkflow(data){
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 async function startFirstVideo(){
+ await prepareMusicBeforeRender();
+
  const btn=document.getElementById('firstVideoButton');
  if(workflowRunning){document.getElementById('revisionStatusFinal').textContent='現在の制作工程が進行中です';return;}
  const instruction=(state.instruction&&state.instruction!=='節約・家計ショート動画')
@@ -317,7 +346,9 @@ async function startFirstVideo(){
 }
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
 function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
-async function send(){const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
+async function send(){
+ await prepareMusicBeforeRender();
+const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
  state.instruction=x.value.trim();
  const projectLabel=state.instruction.replace(/\s+/g,' ').trim();
  document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(projectLabel.length>34?projectLabel.slice(0,34)+'…':projectLabel);
@@ -501,7 +532,10 @@ async function renderCompletedVideo(data){
    // 旧APIとの互換性のため、videoが無い場合だけ従来のrender_videoを呼ぶ。
    let x=data.video ? {ok:true,...data.video} : null;
    if(!x){
-     const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction,results:data.results||[]})});
+     const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+       instruction:state.instruction,results:data.results||[],music_provider:state.musicProvider,
+       music_audio_base64:state.musicAudioBase64,music_filename:state.musicFilename,music_genre:state.musicGenre
+     })});
      x=await r.json();
    }
    if(!x.ok)throw new Error(x.error||'render failed');
@@ -560,6 +594,64 @@ async function renderCompletedVideo(data){
    log('動画制作AI：MP4生成エラー '+String(e).slice(0,100));
  }
 }
+function selectedMusicProvider(){
+ const el=document.querySelector('input[name="musicProvider"]:checked');
+ return el?el.value:'none';
+}
+function updateMusicUI(){
+ state.musicProvider=selectedMusicProvider();
+ const box=document.getElementById('sunoPromptBox');
+ const file=document.getElementById('musicFile');
+ const help=document.getElementById('musicHelp');
+ if(box) box.style.display=state.musicProvider==='suno_manual'?'block':'none';
+ if(file) file.disabled=state.musicProvider!=='imported_audio';
+ if(help){
+   const h={
+    ace_step_local:'PCのACE-Stepで生成した音源をこの画面の外部音源として取り込めます。',
+    suno_manual:'Suno用指示を作成し、Sunoで生成・ダウンロードした音源を外部音源として取り込めます。',
+    imported_audio:'MusicSeed / BandLab / GarageBand等で書き出した音源を選択してください。',
+    none:'音楽を使わず、ナレーション中心で制作します。'
+   };
+   help.textContent=h[state.musicProvider];
+ }
+ localStorage.setItem('aiworkroom_state',JSON.stringify(state));
+}
+function makeSunoPrompt(){
+ const genre=document.getElementById('musicGenre')?.value||'rock';
+ state.musicGenre=genre;
+ const topic=(state.instruction||'短い生活情報動画').replace(/\s+/g,' ').slice(0,180);
+ const prompt='Style: '+genre+', energetic, catchy, original Japanese short-form song.\\n'+
+ 'Clear Japanese vocals, strong hook in the first seconds, memorable chorus, clean production, no artist imitation.\\n'+
+ 'Theme: '+topic;
+ state.musicPrompt=prompt;
+ const el=document.getElementById('sunoPrompt'); if(el) el.value=prompt;
+ document.getElementById('musicStatus').textContent='Suno指示作成済み';
+ log('音楽AI：Suno用オリジナル制作指示を作成');
+}
+async function prepareMusicBeforeRender(){
+ updateMusicUI();
+ state.musicGenre=document.getElementById('musicGenre')?.value||'rock';
+ const file=document.getElementById('musicFile');
+ state.musicAudioBase64='';
+ state.musicFilename='';
+ if(state.musicProvider==='imported_audio' && file && file.files && file.files[0]){
+   const f=file.files[0];
+   if(f.size>12*1024*1024){showToast('音源は12MB以下にしてください');throw new Error('music file too large');}
+   state.musicFilename=f.name;
+   state.musicAudioBase64=await new Promise((resolve,reject)=>{
+     const reader=new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=reject; reader.readAsDataURL(f);
+   });
+   document.getElementById('musicStatus').textContent='外部音源を準備済み';
+ }else if(state.musicProvider==='suno_manual'){
+   makeSunoPrompt();
+   document.getElementById('musicStatus').textContent='Suno生成後に音源取込';
+ }else{
+   document.getElementById('musicStatus').textContent=state.musicProvider==='none'?'音楽なし':'ACE-Step（PCローカル）';
+ }
+}
+document.querySelectorAll('input[name="musicProvider"]').forEach(e=>e.addEventListener('change',updateMusicUI));
+document.getElementById('musicGenre')?.addEventListener('change',()=>{state.musicGenre=document.getElementById('musicGenre').value;});
+document.getElementById('musicFile')?.addEventListener('change',()=>{updateMusicUI();});
 function playNarration(){
  const text=(state.narrationText||'').trim();
  if(!text){showToast('ナレーション原稿がまだありません');return;}
