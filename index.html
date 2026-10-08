@@ -328,7 +328,6 @@ async function playWorkflow(data){
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
 async function startFirstVideo(){
- await prepareMusicBeforeRender();
 
  const btn=document.getElementById('firstVideoButton');
  if(workflowRunning){document.getElementById('revisionStatusFinal').textContent='現在の制作工程が進行中です';return;}
@@ -530,7 +529,7 @@ async function renderCompletedVideo(data){
    document.getElementById('previewText').textContent='MP4をレンダリング中…';
    // /api/orchestrate が新しいMP4を返す場合は、その結果をそのまま使用する。
    // 旧APIとの互換性のため、videoが無い場合だけ従来のrender_videoを呼ぶ。
-   let x=data.video ? {ok:true,...data.video} : null;
+   let x=(state.musicProvider==='none' && data.video) ? {ok:true,...data.video} : null;
    if(!x){
      const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
        instruction:state.instruction,results:data.results||[],music_provider:state.musicProvider,
