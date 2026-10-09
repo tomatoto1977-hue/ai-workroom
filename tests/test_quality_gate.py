@@ -1,4 +1,7 @@
+import asyncio
+import os
 import unittest
+from unittest.mock import patch
 
 import api
 
@@ -36,6 +39,16 @@ class QualityGateSafetyTests(unittest.TestCase):
         api._video_font(24)
         api._video_font(24)
         self.assertGreaterEqual(api._video_font.cache_info().hits, 1)
+
+    def test_run_request_accepts_bounded_memory_context(self):
+        req = api.RunRequest(instruction="test", memory_context="previous verified context")
+        self.assertEqual(req.memory_context, "previous verified context")
+
+    def test_required_memory_missing_stops_orchestration(self):
+        with patch.dict(os.environ, {"MEMORY_REQUIRED": "true"}):
+            response = asyncio.run(api.orchestrate(api.RunRequest(instruction="test")))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("required_learning_context_missing", response.body.decode("utf-8"))
 
 
 if __name__ == "__main__":
