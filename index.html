@@ -390,8 +390,8 @@ function refreshMemoryMaintenance(){
  el.textContent=lines.concat(details.length?['--- 要確認候補 ---',...details]:['要確認候補は検出されませんでした。']).join('\n');
 }
 function buildObsidianMarkdown(){
- const list=readMemories();let md='# AI作業室 継続記憶\\n\\n更新日時：'+new Date().toISOString()+'\\n\\nこのファイルはAI作業室の学習メモです。未確認情報は事実として扱わず、公開前に人間が確認してください。\\n\\n';
- for(const m of list){md+='<!-- AIW_MEMORY_BEGIN -->\\n## '+String(m.title||'学習メモ').replace(/[\\r\\n]/g,' ')+'\\n- id: '+m.id+'\\n- kind: '+m.kind+'\\n- created_at: '+m.created_at+'\\n- status: '+m.status+'\\n- source_url: '+(m.source_url||'')+'\\n- tags: '+(m.tags||[]).join(', ')+'\\n\\n'+m.content+'\\n\\n<!-- AIW_MEMORY_END -->\\n\\n';}
+ const list=readMemories();let md='# AI作業室 継続記憶\n\n更新日時：'+new Date().toISOString()+'\n\nこのファイルはAI作業室の学習メモです。未確認情報は事実として扱わず、公開前に人間が確認してください。\n\n';
+ for(const m of list){md+='<!-- AIW_MEMORY_BEGIN -->\n## '+String(m.title||'学習メモ').replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n\n';}
  return md;
 }
 function exportObsidianMemory(){
@@ -405,9 +405,9 @@ function getObsidianSettings(){try{return JSON.parse(localStorage.getItem(OBSIDI
 function setObsidianSyncStatus(message){const el=document.getElementById('obsidianSyncStatus');if(el)el.textContent=message;}
 function loadObsidianSettingsUI(){const s=getObsidianSettings();const u=document.getElementById('obsidianApiUrl');const k=document.getElementById('obsidianApiKey');if(u&&s.url)u.value=s.url;if(k&&s.key)k.value=s.key;setObsidianSyncStatus(s.key?'設定済み：ページ起動時にObsidianから読み込みます。':'未設定：現在はブラウザ内だけに保存されています。');}
 function saveObsidianSettingsAndSync(){
- const url=String(document.getElementById('obsidianApiUrl')?.value||'').trim().replace(/\\/$/,'');
+ const url=String(document.getElementById('obsidianApiUrl')?.value||'').trim().replace(/\/$/,'');
  const key=String(document.getElementById('obsidianApiKey')?.value||'').trim();
- if(!/^https?:\\/\\/(127\\.0\\.0\\.1|localhost)(:\\d+)?$/i.test(url)){showToast('URLはこの端末のlocalhost（例：http://127.0.0.1:27123）にしてください');return;}
+ if(!/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(url)){showToast('URLはこの端末のlocalhost（例：http://127.0.0.1:27123）にしてください');return;}
  if(!key){showToast('ObsidianのLocal REST APIキーを入力してください');return;}
  try{localStorage.setItem(OBSIDIAN_SETTINGS_KEY,JSON.stringify({url,key}));setObsidianSyncStatus('設定を保存しました。Obsidian接続を確認しています…');syncObsidianMemory(true);}catch(e){showToast('設定保存に失敗しました');}
 }
@@ -426,8 +426,8 @@ async function syncObsidianMemory(showResult=false){
      else remoteMd=await remoteResponse.text();
    }else if(remoteResponse.status!==404){throw new Error('Obsidian読込に失敗しました（HTTP '+remoteResponse.status+'）。APIキーとプラグイン設定を確認してください。');}
    if(remoteMd){
-     const blocks=[...remoteMd.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\\s\\S]*?)<!-- AIW_MEMORY_END -->/g)];
-     for(const match of blocks){const b=match[1];const title=(b.match(/^##\\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>((b.match(new RegExp('^- '+k+':\\\\s*(.*)$','m'))||[])[1]||'').trim();const marker=b.indexOf('\\n\\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\\n]*\\n/,'').trim();if(content)saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});}
+     const blocks=[...remoteMd.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];
+     for(const match of blocks){const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>{const prefix='- '+k+': ';const line=b.split('\n').find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim():'';};const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();if(content)saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});}
    }
    const put=await fetch(obsidianEndpoint(settings.url,OBSIDIAN_MEMORY_PATH),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:buildObsidianMarkdown()});
    if(!put.ok)throw new Error('Obsidian保存に失敗しました（HTTP '+put.status+'）。保管庫パス・API権限を確認してください。');
