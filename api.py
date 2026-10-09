@@ -95,7 +95,7 @@ def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
     if script:
         lines = []
         for line in script.splitlines():
-            line = re.sub(r"^\s*(?:【[^】]+】|\[[^\]]+\]|\\d{1,2}[-〜～]\\d{1,2}秒[:：]?)\s*", "", line).strip()
+            line = re.sub(r"^\s*(?:【[^】]+】|\[[^\]]+\]|\d{1,2}[-〜～]\d{1,2}秒[:：]?)\s*", "", line).strip()
             if not line or re.search(r"(画面|字幕|カット|BGM|映像|ナレーション案|構成案|企画書|CTA|フック)", line):
                 continue
             lines.append(line)
