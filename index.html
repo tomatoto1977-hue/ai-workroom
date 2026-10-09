@@ -413,6 +413,26 @@ function saveObsidianSettingsAndSync(){
 }
 function queueObsidianSync(){if(!getObsidianSettings().key||window.__obsidianImporting)return;clearTimeout(obsidianSyncTimer);obsidianSyncTimer=setTimeout(()=>syncObsidianMemory(false),1800);}
 function obsidianEndpoint(url,path){return url+'/vault/'+path.split('/').map(encodeURIComponent).join('/');}
+function memoryFolderFor(m){
+ if(m.kind==='rule')return '00_絶対ルール';
+ if(m.kind==='research')return '02_リサーチ';
+ if(['run','production','quality'].includes(m.kind))return '03_制作・品質監査';
+ if(['improvement','experiment','bugfix'].includes(m.kind))return '04_改善実験';
+ return '01_学習コンテキスト';
+}
+function parseObsidianMemoryMarkdown(md){
+ const out=[];const blocks=[...String(md||'').matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];
+ for(const match of blocks){
+  const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';
+  const get=k=>{const prefix='- '+k+': ';const line=b.split('\n').find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim():'';};
+  const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();
+  if(content)out.push({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});
+ }
+ return out;
+}
+function memoryEntryMarkdown(m){
+ return '<!-- AIW_MEMORY_BEGIN -->\n## '+String(m.title||'学習メモ').replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n';
+}
 async function syncObsidianMemory(showResult=false){
  const settings=getObsidianSettings();if(!settings.url||!settings.key){if(showResult)showToast('先にObsidian接続設定を保存してください');return false;}
  if(obsidianSyncBusy)return false;obsidianSyncBusy=true;window.__obsidianImporting=true;setObsidianSyncStatus('Obsidianと同期中…');
@@ -425,12 +445,17 @@ async function syncObsidianMemory(showResult=false){
      if(ct.includes('application/json')){const data=await remoteResponse.json();remoteMd=String(data.content??data.data??'');}
      else remoteMd=await remoteResponse.text();
    }else if(remoteResponse.status!==404){throw new Error('Obsidian読込に失敗しました（HTTP '+remoteResponse.status+'）。APIキーとプラグイン設定を確認してください。');}
-   if(remoteMd){
-     const blocks=[...remoteMd.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];
-     for(const match of blocks){const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>{const prefix='- '+k+': ';const line=b.split('\n').find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim():'';};const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();if(content)saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});}
-   }
+   if(remoteMd){for(const entry of parseObsidianMemoryMarkdown(remoteMd))saveMemoryEntry(entry);}
    const put=await fetch(obsidianEndpoint(settings.url,OBSIDIAN_MEMORY_PATH),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:buildObsidianMarkdown()});
    if(!put.ok)throw new Error('Obsidian保存に失敗しました（HTTP '+put.status+'）。保管庫パス・API権限を確認してください。');
+   const memories=readMemories();
+   for(const m of memories){
+     const folder=memoryFolderFor(m);
+     const safeTitle=String(m.title||'学習メモ').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,'-').slice(0,64)||'学習メモ';
+     const notePath='AI作業室/'+folder+'/'+safeTitle+'-'+String(m.id||'memory').replace(/[^a-zA-Z0-9-]/g,'').slice(-18)+'.md';
+     const noteResponse=await fetch(obsidianEndpoint(settings.url,notePath),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:'# '+m.title+'\n\n分類：'+folder+'\n\n'+memoryEntryMarkdown(m)});
+     if(!noteResponse.ok)throw new Error('分類ノートの保存に失敗しました（HTTP '+noteResponse.status+'）。');
+   }
    setObsidianSyncStatus('同期成功：'+readMemories().length+'件をObsidianと統合しました。最終同期 '+new Date().toLocaleTimeString('ja-JP'));
    if(showResult)showToast('Obsidian同期成功：記憶を統合して保存しました');
    return true;
