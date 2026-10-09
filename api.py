@@ -12,7 +12,7 @@ import subprocess
 
 APP_VERSION = "2.6.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
-app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\\.onrender\\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
+app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
 VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 from fastapi.staticfiles import StaticFiles
@@ -533,7 +533,6 @@ def _video_file_qa(video_path: Path) -> dict[str, Any]:
     if not video_path.exists():
         report["issues"].append("file_missing")
         return report
-    import imageio_ffmpeg
     import imageio_ffmpeg
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     try:
