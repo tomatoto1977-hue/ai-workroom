@@ -708,9 +708,9 @@ async function renderCompletedVideo(data){
    }
    state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
    document.getElementById('resultBadge').textContent=x.audio_embedded
-     ? (x.music_provider==='imported_audio' && x.tts_status==='gemini_tts' ? 'MP4完成・BGM＋ナレーション' : (x.music_provider==='imported_audio' ? 'MP4完成・BGM入り' : 'MP4完成・ナレーション付き'))
-     : 'MP4完成・確認待ち';
-   document.getElementById('previewText').textContent=x.audio_embedded?'完成MP4です。再生ボタンから確認できます':'完成MP4です。🔊ナレーションで音声確認できます';
+     ? (x.tts_status==='gemini_tts' ? (x.music_provider==='none' ? 'MP4完成・ナレーション入り' : 'MP4完成・BGM＋ナレーション') : (x.music_provider==='auto_bgm' ? 'MP4完成・オリジナルBGM入り' : (x.music_provider==='imported_audio' ? 'MP4完成・BGM入り' : 'MP4完成・音声入り')))
+     : 'MP4完成・音声未確認';
+   document.getElementById('previewText').textContent=x.tts_status==='gemini_tts'?'完成MP4です。ナレーションと音量を確認してください。':(x.audio_embedded?'完成MP4です。BGMは入っていますが、ナレーション音声はまだ埋め込まれていません。':'完成MP4です。音声の埋め込みは未確認です。');
    document.getElementById('nextAction').textContent='完成動画を確認してください';
    log(x.audio_embedded?'動画制作AI：MP4＋ナレーション生成完了 → プレビューへ':'動画制作AI：MP4生成完了 → ナレーション確認を準備');
 
