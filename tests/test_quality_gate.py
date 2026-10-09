@@ -19,6 +19,8 @@ class QualityGateSafetyTests(unittest.TestCase):
         gate = api.local_quality_gate(results)
         self.assertFalse(gate["passed"])
         self.assertLessEqual(gate["score"], 94)
+        self.assertEqual(sum(gate["breakdown"].values()), gate["score"])
+        self.assertLessEqual(sum(gate["breakdown"].values()), 94)
         self.assertEqual(gate["status"], "REVIEW_REQUIRED")
         self.assertEqual(gate["auditor"], "local_safety_fallback")
 
