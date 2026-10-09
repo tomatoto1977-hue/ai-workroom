@@ -53,3 +53,5 @@ class QualityGateSafetyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+# Temporary validation marker: run the regression suite against current main changes.
