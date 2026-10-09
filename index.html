@@ -433,24 +433,6 @@ function parseObsidianMemoryMarkdown(md){
 function memoryEntryMarkdown(m){
  return '<!-- AIW_MEMORY_BEGIN -->\n## '+String(m.title||'学習メモ').replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n';
 }
-async function readObsidianCategoryMirrors(settings,headers){
- const folders=['00_絶対ルール','01_学習コンテキスト','02_リサーチ','03_制作・品質監査','04_改善実験','90_アーカイブ'];
- for(const folder of folders){
-  let listing;
-  try{listing=await fetch(obsidianEndpoint(settings.url,'AI作業室/'+folder+'/'),{method:'GET',headers,cache:'no-store'});}catch(e){continue;}
-  if(!listing.ok)continue;
-  let data;try{data=await listing.json();}catch(e){continue;}
-  const files=Array.isArray(data.files)?data.files:[];
-  for(const file of files.filter(x=>String(x).toLowerCase().endsWith('.md')&&!String(x).includes('/'))){
-   try{
-    const response=await fetch(obsidianEndpoint(settings.url,'AI作業室/'+folder+'/'+file),{method:'GET',headers,cache:'no-store'});
-    if(!response.ok)continue;
-    const md=await response.text();
-    for(const entry of parseObsidianMemoryMarkdown(md))saveMemoryEntry(entry);
-   }catch(e){}
-  }
- }
-}
 async function syncObsidianMemory(showResult=false){
  const settings=getObsidianSettings();if(!settings.url||!settings.key){if(showResult)showToast('先にObsidian接続設定を保存してください');return false;}
  if(obsidianSyncBusy)return false;obsidianSyncBusy=true;window.__obsidianImporting=true;setObsidianSyncStatus('Obsidianと同期中…');
@@ -464,7 +446,6 @@ async function syncObsidianMemory(showResult=false){
      else remoteMd=await remoteResponse.text();
    }else if(remoteResponse.status!==404){throw new Error('Obsidian読込に失敗しました（HTTP '+remoteResponse.status+'）。APIキーとプラグイン設定を確認してください。');}
    if(remoteMd){for(const entry of parseObsidianMemoryMarkdown(remoteMd))saveMemoryEntry(entry);}
-   await readObsidianCategoryMirrors(settings,headers);
    const put=await fetch(obsidianEndpoint(settings.url,OBSIDIAN_MEMORY_PATH),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:buildObsidianMarkdown()});
    if(!put.ok)throw new Error('Obsidian保存に失敗しました（HTTP '+put.status+'）。保管庫パス・API権限を確認してください。');
    const memories=readMemories();
