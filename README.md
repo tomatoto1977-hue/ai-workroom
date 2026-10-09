@@ -41,7 +41,7 @@ AI画像を毎回テーマに合わせて生成 → TikTokセーフエリアに�
 - index.html の継続記憶カードに、ObsidianのLocal REST APIプラグイン接続欄を追加しました。
 - 設定後、ブラウザ内記憶をObsidianの `AI作業室/01_学習コンテキスト/AI作業室_継続記憶.md` と自動で統合します。起動時に保管庫の同ファイルを読み込み、保存時には少し待ってから同期します。
 - 同期は端末の localhost に限定し、APIキーはそのブラウザの localStorage に保存します。APIキーをRenderやAI APIへ送信しません。
-- 初回はObsidianでLocal REST APIコミュニティプラグインを導入し、APIキーとCORS許可元を設定してください。手順は [docs/obsidian-auto-sync.md](docs/obsidian-auto-sync.md) を参照。
+- 初回はObsidianでLocal REST APIコミュニティプラグインを導入し、APIキーとCORS許可元を設定してください。手順は [docs/obsidian-auto-sync.md](docs/obsidian-auto-sync.md) を参照。プラグインは通常HTTPS 27124番を使います。HTTP 27123番を使う場合は、プラグイン側でHTTPを有効にし、localhostだけにバインドしてください。
 - 接続できない場合も、ブラウザ内記憶は保持し、従来のMarkdown手動入出力を利用できます。同期ステータスを成功表示できた場合のみ、書き込み成功として扱います。
 - 注意：ObsidianとAI作業室を同じ端末・同じブラウザで開く構成が基本です。iPhone上のObsidianとPC上のブラウザのように端末が異なる場合、 localhost は接続先端末自身を指すため、そのままでは同期されません。
 
