@@ -54,7 +54,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .result-card{padding:0;overflow:hidden}.result-head{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid #eaded4}.result-head strong{font-size:12px}.result-badge{font-size:9px;font-weight:900;padding:5px 9px;border-radius:999px;background:#eef6ed;color:#557052}.video-preview{margin:10px;border-radius:13px;min-height:180px;background:#17151a;display:grid;place-items:center;color:#fff;text-align:center;border:1px solid #3b343d}.video-preview b{display:block;font-size:12px}.video-preview span{display:block;font-size:8px;color:#c9bec9;margin-top:5px}.result-actions{display:flex;gap:7px;padding:0 10px 10px}.result-actions button{flex:1;border:0;border-radius:12px;padding:9px;background:#8b6a57;color:#fff;font-size:10px;font-weight:900}.result-actions button.secondary{background:#eee5dd;color:#5e5048}
 .quality-total{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:12px;background:#faf4ee;margin-bottom:8px}.quality-total strong{font-size:23px}.quality-total span{font-size:9px;font-weight:900}.quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.qrow{padding:7px 8px;border:1px solid #eadfd7;border-radius:10px}.qrow-top{display:flex;justify-content:space-between;font-size:8px;font-weight:800}.qbar{height:4px;background:#eadfd5;border-radius:5px;margin-top:5px;overflow:hidden}.qbar i{display:block;height:100%;width:0;background:#8b6a57}
 .agents-mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.agents-note{font-size:8px;color:#806f65;margin:4px 0 8px}.mini-agent{padding:8px;border:1px solid #e4d5ca;border-radius:11px;background:#fffaf5;min-width:0}.mini-agent b{font-size:8px}.mini-agent small{display:block;font-size:7px;color:#7d6c63;margin-top:2px;line-height:1.35}.mini-agent:last-child{grid-column:1/-1}
-.revision-panel.final-revision{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;padding:12px;background:#fffaf5}.revision-panel.final-revision h3{font-size:12px}.revision-panel.final-revision p{font-size:8px}.revision-panel.final-revision textarea{min-height:64px;font-size:11px}.revision-panel.final-revision .revision-actions button{background:#7654d9}.final-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;font-size:8px;color:#806f65}.final-footer b{color:#557052}
+.revision-panel.final-revision{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;padding:12px;background:#fffaf5}.revision-panel.final-revision h3{font-size:12px}.revision-panel.final-revision p{font-size:8px}.revision-panel.final-revision textarea{min-height:64px;font-size:11px}.revision-panel.final-revision .revision-actions button{background:#7654d9}.memory-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.memory-actions button,.memory-file{border:1px solid #c99f7d;border-radius:12px;padding:8px 11px;background:#fff7ef;color:#5b4638;font-weight:800;font-size:12px;cursor:pointer}.memory-file input{display:none}#memorySummary{font-weight:800;color:#6b5143}.final-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;font-size:8px;color:#806f65}.final-footer b{color:#557052}
 .final-ui .revision-panel{display:block!important}
 @media(max-width:700px){
  .shell{padding:0;background:#f3e7da;overflow:auto}.artboard{width:100%;height:auto;min-height:100dvh;aspect-ratio:auto;border-radius:0;overflow:visible;box-shadow:none;background:#f3e7da}
@@ -179,6 +179,16 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     <h2>▸ 詳細ログ・技術情報</h2>
     <p id="finalDetail">必要なときだけ確認できます。自動投稿・外部操作・金銭操作は行いません。</p>
   </section>
+  <section class="final-card detail-card" id="memoryCard">
+    <h2>🧠 継続記憶・Obsidian</h2>
+    <p>この端末に学習メモを保存し、次回の実行前に関連メモを読み込みます。MarkdownでObsidianと往復できます。未確認のAI生成内容は事実として扱いません。</p>
+    <p id="memorySummary">継続記憶を確認中…</p>
+    <div class="memory-actions">
+      <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す</button>
+      <label class="memory-file">Obsidianから読み込む<input id="memoryImportFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
+      <button type="button" onclick="saveCurrentRule()">今回の指示を学習ルールとして保存</button>
+    </div>
+  </section>
   <div class="final-footer"><span>安全ゲート：<b>人間承認必須</b>　公開・投稿OFF</span><span id="finalProject">プロジェクト：—</span></div>
 </section>
 <div class="panel project"><strong id="projectTitle">現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">工程 45%</span></div>
@@ -214,6 +224,58 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </main></div>
 <script>
 const API_URL='https://ai-workroom-api.onrender.com';
+const MEMORY_KEY='aiworkroom_learning_memory_v1';
+function readMemories(){
+ try{const x=JSON.parse(localStorage.getItem(MEMORY_KEY)||'[]');return Array.isArray(x)?x.filter(m=>m&&typeof m.content==='string').slice(-100):[];}
+ catch(e){return [];}
+}
+function saveMemoryEntry(entry){
+ const list=readMemories();const content=String(entry.content||'').trim().slice(0,3000);if(!content)return false;
+ const title=String(entry.title||'学習メモ').trim().slice(0,180);
+ const norm=v=>String(v||'').toLowerCase().replace(/[\s、。,.！!？?「」『』【】]/g,'').slice(0,220);
+ const duplicate=list.find(m=>norm(m.title)===norm(title)&&norm(m.content)===norm(content));
+ if(duplicate)return false;
+ list.push({id:entry.id||('mem-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)),title,kind:entry.kind||'run',created_at:entry.created_at||new Date().toISOString(),status:entry.status||'unverified',source_url:String(entry.source_url||'').slice(0,800),tags:Array.isArray(entry.tags)?entry.tags.slice(0,12):[],content});
+ try{localStorage.setItem(MEMORY_KEY,JSON.stringify(list.slice(-100)));renderMemoryStatus();return true;}catch(e){showToast('記憶保存に失敗しました。端末の保存容量を確認してください');return false;}
+}
+function renderMemoryStatus(){
+ const list=readMemories();const el=document.getElementById('memorySummary');
+ if(el)el.textContent='保存済み '+list.length+'件 ／ ルール '+list.filter(m=>m.kind==='rule').length+'件 ／ 調査・実行記録 '+list.filter(m=>m.kind!=='rule').length+'件。保存先：このブラウザ（Obsidian同期はMarkdown経由）';
+}
+function memoryTokens(s){return (String(s||'').toLowerCase().match(/[一-龥ぁ-んァ-ヶa-z0-9]{2,}/g)||[]).slice(0,80);}
+function buildMemoryContext(instruction){
+ const list=readMemories();const tokens=memoryTokens(instruction);
+ const ranked=list.map((m,i)=>{const body=m.title+' '+m.content+' '+(m.tags||[]).join(' ');const mt=memoryTokens(body);const overlap=tokens.filter(t=>mt.includes(t)).length;return {m,i,score:(m.kind==='rule'?100:0)+overlap*5+(m.kind==='research'?3:0)+i/1000};});
+ ranked.sort((a,b)=>b.score-a.score);
+ const selected=[...ranked.filter(x=>x.m.kind==='rule'),...ranked.filter(x=>x.m.kind!=='rule'&&x.score>0)].filter((x,i,a)=>a.findIndex(y=>y.m.id===x.m.id)===i).slice(0,5);
+ let out='';for(const x of selected){const m=x.m;const part='['+m.kind+' / '+m.status+' / '+m.created_at+'] '+m.title+'\n'+m.content.slice(0,350)+(m.source_url?'\n出典URL: '+m.source_url:'')+'\n\n';if((out+part).length>1400)continue;out+=part;}
+ return {text:out.trim(),count:selected.length,ids:selected.map(x=>x.m.id)};
+}
+function recordRunMemory(data,instruction){
+ const gate=data&&data.gate||{};const theme=data&&data.selected_theme;
+ if(theme){const src=(theme.sources||[]).map(x=>(x.type||'出典')+': '+(x.title||x.query||'')+(x.url?' '+x.url:'')).join('\n');
+ saveMemoryEntry({kind:'research',title:'調査テーマ：'+(theme.title||instruction),status:'unverified',source_url:(theme.sources||[]).find(x=>x.url)?.url||'',tags:['research','theme'],content:'AI作業室が選定したテーマ。これは需要の確定や事実の証明ではありません。\nテーマ：'+(theme.title||instruction)+'\n生トレンド：'+(theme.raw_trend||'なし')+'\nスコア：'+(theme.score??'不明')+'\n選出日時：'+(theme.selected_at||new Date().toISOString())+'\n出典・検索情報：\n'+(src||'出典情報なし')+'\nニュース件数：'+((theme.news||[]).length)+'。原資料を再確認してから利用すること。'});}
+ const snippets=(data&&Array.isArray(data.results)?data.results:[]).filter(x=>x&&x.text&&['文章化AI','エビデンスAI','市場調査AI','統括AI'].includes(x.role)).map(x=>'【'+x.role+'】 '+String(x.text).replace(/\s+/g,' ').slice(0,420)).join('\n');
+ saveMemoryEntry({kind:'run',title:'実行記録：'+String(theme&&theme.title||instruction).slice(0,120),status:gate.passed?'ai_audit_passed_human_review_still_required':'review_required',tags:['execution',gate.passed?'audit-pass':'review'],content:'これはAI作業室の生成・監査記録であり、独立検証済みの事実ではありません。\n依頼テーマ：'+instruction+'\n実行モード：'+(data.mode||'unknown')+'\n品質点：'+(gate.score??'不明')+'/100、AI監査合格：'+(gate.passed===true?'はい（人間確認は別途必須）':'いいえ／未確認')+'\n改善回数：'+(gate.improvement_rounds??0)+'\n記憶コンテキスト読込：'+(data.memory_context_loaded?'あり':'なし')+'\n担当メモ：\n'+(snippets||'担当メモなし')});
+}
+function saveCurrentRule(){
+ const input=document.getElementById('instruction');const text=String(state.instruction||input?.value||'').trim();
+ if(!text){showToast('保存する指示がありません');return;}
+ const ok=saveMemoryEntry({kind:'rule',title:'ユーザー指定ルール：'+text.slice(0,80),status:'user_confirmed',tags:['rule','user-confirmed'],content:text});
+ showToast(ok?'学習ルールとして保存しました':'同じ内容が既に保存されています');
+}
+function exportObsidianMemory(){
+ const list=readMemories();let md='# AI作業室 継続記憶\n\n更新日時：'+new Date().toISOString()+'\n\nこのファイルはAI作業室の学習メモです。未確認情報は事実として扱わず、公開前に人間が確認してください。\n\n';
+ for(const m of list){md+='<!-- AIW_MEMORY_BEGIN -->\n## '+m.title.replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n\n';}
+ const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AI作業室_継続記憶.md';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Obsidian用Markdownを書き出しました');
+}
+async function importObsidianMemory(file){
+ if(!file)return;try{const md=await file.text();const blocks=[...md.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];let added=0;
+ for(const match of blocks){const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>((b.match(new RegExp('^- '+k+':\\s*(.*)$','m'))||[])[1]||'').trim();const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();if(!content)continue;const ok=saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});if(ok)added++;}
+ if(!blocks.length){const title=file.name.replace(/\.md$/i,'');if(saveMemoryEntry({kind:'imported',title,status:'unverified',tags:['obsidian-import'],content:md.slice(0,3000)}))added++;}
+ renderMemoryStatus();showToast('Markdown読込完了：新規 '+added+'件');log('継続記憶：Obsidian Markdownから'+added+'件を読込');}catch(e){showToast('Markdown読込に失敗しました');}
+}
+
 const roles=[
  ['調査AI','市場データ・根拠を収集'],['企画AI','競争戦略を反映して企画'],['台本AI','視聴者向けに文章化'],['チェックAI','事実・表現・品質を確認'],['編集AI','動画構成・編集を仕上げ']
 ];
@@ -386,7 +448,9 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
  log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
  x.value='';start();render();
  try{
-   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700'});
+   const memory=buildMemoryContext(state.instruction);
+   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text});
+   if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込');else log('継続記憶：関連メモなし。標準安全ルールで開始');
    let r=null, data=null, lastError=null;
    for(let attempt=0;attempt<2;attempt++){
      try{
@@ -400,6 +464,8 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
      }
    }
    if(!data) throw lastError||new Error('API response unavailable');
+   recordRunMemory(data,state.instruction);
+   if(data.memory_context_loaded)log('統括AI：継続記憶 '+data.memory_context_chars+'文字を制作・監査に引き継ぎ');
    if(data.selected_theme){
      state.instruction=data.selected_theme.title||state.instruction;
      document.getElementById('projectTitle').textContent='現在のプロジェクト：'+state.instruction.slice(0,34)+(state.instruction.length>34?'…':'');
@@ -693,6 +759,8 @@ async function prepareMusicBeforeRender(){
 document.querySelectorAll('input[name="musicProvider"]').forEach(e=>e.addEventListener('change',updateMusicUI));
 document.getElementById('musicGenre')?.addEventListener('change',()=>{state.musicGenre=document.getElementById('musicGenre').value;});
 document.getElementById('musicFile')?.addEventListener('change',()=>{updateMusicUI();});
+document.getElementById('memoryImportFile')?.addEventListener('change',e=>{importObsidianMemory(e.target.files&&e.target.files[0]);e.target.value='';});
+renderMemoryStatus();
 function playNarration(){
  const text=(state.narrationText||'').trim();
  if(!text){showToast('ナレーション原稿がまだありません');return;}
