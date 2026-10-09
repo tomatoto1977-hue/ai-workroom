@@ -243,10 +243,10 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
   </section>
   <section class="final-card detail-card" id="memoryCard">
     <h2>🧠 継続記憶・Obsidian</h2>
-    <p>学習メモはブラウザ内に保存されます。Local REST APIを設定すると、Obsidian保管庫への自動蓄積・読込を試行します。接続未設定時は従来どおりMarkdownで入出力できます。未確認のAI生成内容は事実として扱いません。</p>
+    <p>学習メモはこのブラウザ内に保存されます。パソコンではLocal REST APIによる自動同期を試せます。iPhoneのSafariからはObsidianアプリ内のLocal REST APIへ直接接続できない場合があるため、iPhoneでは「Markdownを書き出す」→共有→Obsidian→「保管庫へインポート」の手動取り込みを推奨します。未確認のAI生成内容は事実として扱いません。</p>
     <p id="memorySummary">継続記憶を確認中…</p>
     <div style="margin:10px 0;padding:10px;border:1px solid #d9c6b7;border-radius:12px;background:#fffaf5">
-      <b style="display:block;font-size:12px;margin-bottom:6px">Obsidian自動同期（同じ端末の保管庫）</b>
+      <b style="display:block;font-size:12px;margin-bottom:6px">Obsidian連携（PC自動同期／iPhone手動取り込み）</b>
       <label for="obsidianApiUrl" style="display:block;font-size:11px;margin:6px 0 3px">Local REST API URL</label>
       <input id="obsidianApiUrl" type="url" inputmode="url" placeholder="http://127.0.0.1:27123" value="http://127.0.0.1:27123" style="width:100%;padding:9px;border:1px solid #d9c6b7;border-radius:9px;font-size:12px">
       <label for="obsidianApiKey" style="display:block;font-size:11px;margin:6px 0 3px">Obsidian Local REST APIキー（このブラウザだけに保存）</label>
@@ -256,10 +256,10 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
         <button type="button" onclick="syncObsidianMemory(true)">今すぐ同期</button>
       </div>
       <p id="obsidianSyncStatus" role="status" aria-live="polite" style="margin-top:7px;font-size:11px">未設定：現在はブラウザ内だけに保存されています。</p>
-      <p style="margin-top:5px;font-size:10px">Obsidianの「Local REST API」コミュニティプラグインが必要です。APIキーは外部サーバーへ送信しません。Obsidianが動作する端末のブラウザで設定してください。</p>
+      <p style="margin-top:5px;font-size:10px">自動同期にはObsidianの「Local REST API」プラグインと同じ端末での接続が必要です。iPhoneではこの接続が動作しない場合があります。APIキーを入力する前に接続可否を確認してください。iPhoneでは「Markdownを書き出す」から共有シートでObsidianを選び、「保管庫へインポート」を押す方法が安全な代替手段です。APIキーは外部サーバーへ送信しません。</p>
     </div>
     <div class="memory-actions">
-      <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す</button>
+      <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す（iPhone取り込み用）</button>
       <label class="memory-file">Obsidianから読み込む<input id="memoryImportFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
       <button type="button" onclick="saveCurrentRule()">今回の指示を学習ルールとして保存</button>
       <button type="button" onclick="refreshMemoryMaintenance()">蓄積メモを点検</button>
