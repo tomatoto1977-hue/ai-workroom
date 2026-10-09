@@ -45,19 +45,18 @@ def _video_font(size: int):
 
 def _video_card(path: Path, title: str, body: str, step: str):
     from PIL import Image, ImageDraw
-    # Shorts/TikTokの正本レンダーは1080x1920の縦9:16。
-    # 上下のSNS UIに重要情報が被らないよう、中央寄りへ配置する。
-    im=Image.new("RGB",(1080,1920),(248,240,232))
+    # Free 512MiB環境でのピークメモリを抑えるため720x1280の縦9:16で作成。
+    im=Image.new("RGB",(720,1280),(248,240,232))
     d=ImageDraw.Draw(im)
-    d.rounded_rectangle((52,52,1028,1868),radius=52,fill=(255,250,245),outline=(217,185,157),width=4)
-    d.text((105,112),"AI WORKROOM",font=_video_font(50),fill=(76,64,57))
-    d.text((105,235),step,font=_video_font(38),fill=(118,84,217))
-    d.text((105,340),title,font=_video_font(75),fill=(65,55,49))
-    y=505
+    d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,250,245),outline=(217,185,157),width=3)
+    d.text((70,75),"AI WORKROOM",font=_video_font(34),fill=(76,64,57))
+    d.text((70,156),step,font=_video_font(25),fill=(118,84,217))
+    d.text((70,226),title,font=_video_font(50),fill=(65,55,49))
+    y=337
     for line in body.split("\n")[:10]:
-        d.text((105,y),line[:31],font=_video_font(43),fill=(92,79,70)); y+=82
-    d.rounded_rectangle((105,1515,975,1635),radius=27,fill=(139,106,87))
-    d.text((138,1552),"HUMAN APPROVAL REQUIRED",font=_video_font(30),fill=(255,255,255))
+        d.text((70,y),line[:31],font=_video_font(29),fill=(92,79,70)); y+=55
+    d.rounded_rectangle((70,1010,650,1090),radius=18,fill=(139,106,87))
+    d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
     im.save(path)
 
 def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
@@ -550,7 +549,7 @@ def _video_file_qa(video_path: Path) -> dict[str, Any]:
     except Exception as exc:
         report["issues"].append(type(exc).__name__)
         return report
-    if report["resolution"] != [1080, 1920]: report["issues"].append("resolution_not_1080x1920")
+    if report["resolution"] != [720, 1280]: report["issues"].append("resolution_not_720x1280")
     if not report["has_video"]: report["issues"].append("video_stream_missing")
     if report["duration_seconds"] is None or report["duration_seconds"] < 10: report["issues"].append("duration_too_short")
     report["status"] = "PASS" if not report["issues"] else "REVIEW"
@@ -616,8 +615,8 @@ def _render_video_files(
     ff=imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
         ff,"-y","-framerate","1/4","-i",str(work/"%02d.png"),
-        "-vf","fps=30","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","1",
-        "-profile:v","main","-level","3.1","-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
+        "-vf","fps=24","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","1",
+        "-profile:v","main","-level","3.1","-pix_fmt","yuv420p","-r","24","-movflags","+faststart",str(out)
     ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
 
     narration=_narration_text(instruction,results)
@@ -646,8 +645,7 @@ def _render_video_files(
         final_out=muxed
         audio_embedded=True
 
-    # Renderの一時ファイルを後から再取得する経路を避けるため、完成直後のMP4本体も同じAPI応答へ含める。
-    # iPhone側はこのbase64をBlobへ変換して再生する。永続ディスクや有料ストレージは使用しない。
+    # MP4本体はJSONへBase64埋め込みせず、video_urlから取得する。
     return {
         "video_url":f"/videos/{final_out.name}",
         "video_mime":"video/mp4",
