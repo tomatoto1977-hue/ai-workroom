@@ -45,15 +45,27 @@ def _video_font(size: int):
 
 def _video_card(path: Path, title: str, body: str, step: str):
     from PIL import Image, ImageDraw
-    im=Image.new("RGB",(720,1280),(248,240,232))
+    palettes = [
+        ((248,240,232),(118,84,217),(232,211,244)),
+        ((232,243,236),(43,113,92),(190,222,207)),
+        ((242,237,249),(109,76,157),(220,204,239)),
+        ((250,239,220),(166,100,43),(242,211,163)),
+        ((232,241,247),(48,105,148),(190,220,237)),
+        ((247,234,232),(165,76,75),(239,196,190)),
+        ((238,241,224),(98,121,60),(208,220,173))
+    ]
+    try: idx=max(0,min(6,int(str(step).split("/")[0].strip())-1))
+    except Exception: idx=0
+    bg,accent,pale=palettes[idx]
+    im=Image.new("RGB",(720,1280),bg)
     d=ImageDraw.Draw(im)
-    # Soft editorial cover with decorative shapes and clear hierarchy.
-    d.ellipse((505,-70,790,215),fill=(232,211,244))
-    d.ellipse((545,40,690,185),fill=(197,222,201))
-    d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,250,245),outline=(217,185,157),width=3)
+    # Different restrained palette per scene; readable, editorial and more dynamic.
+    d.ellipse((505,-70,790,215),fill=pale)
+    d.ellipse((545,40,690,185),fill=bg)
+    d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,252,248),outline=pale,width=4)
     d.text((70,75),"AI WORKROOM",font=_video_font(30),fill=(76,64,57))
-    d.text((70,156),step,font=_video_font(23),fill=(118,84,217))
-    d.rounded_rectangle((70,205,155,214),radius=5,fill=(118,84,217))
+    d.text((70,156),step,font=_video_font(23),fill=accent)
+    d.rounded_rectangle((70,205,155,214),radius=5,fill=accent)
     title_text = str(title or "")[:28]
     title_lines = [title_text[i:i+12] for i in range(0,len(title_text),12)] or ["動画のポイント"]
     y=245
@@ -65,10 +77,12 @@ def _video_card(path: Path, title: str, body: str, step: str):
     body_lines = [body_text[i:i+20] for i in range(0,min(len(body_text),360),20)]
     for line in body_lines[:9]:
         d.text((70,y),line,font=_video_font(25),fill=(92,79,70)); y+=44
-    d.rounded_rectangle((70,1010,650,1090),radius=18,fill=(139,106,87))
+    d.rounded_rectangle((70,1010,650,1090),radius=18,fill=accent)
     d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
-    d.text((70,1150),"確認してから公開",font=_video_font(23),fill=(118,84,217))
-    d.text((590,1150),step.split("/")[-1].strip(),font=_video_font(18),fill=(118,84,217))
+    d.text((70,1150),"確認してから公開",font=_video_font(23),fill=accent)
+    d.text((590,1150),step.split("/")[-1].strip(),font=_video_font(18),fill=accent)
+    d.rounded_rectangle((70,1200,650,1210),radius=5,fill=pale)
+    d.rounded_rectangle((70,1200,70+int(580*(idx+1)/7),1210),radius=5,fill=accent)
     im.save(path)
 
 def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
