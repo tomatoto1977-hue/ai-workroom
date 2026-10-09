@@ -116,7 +116,8 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     <div class="result-head"><strong>🎵 音楽制作</strong><span class="result-badge" id="musicStatus">未選択</span></div>
     <p style="margin:8px 0;color:#806f65;font-size:12px">動画ごとに音楽方式を選択できます。自動投稿・課金操作は行いません。</p>
     <div style="display:grid;gap:7px">
-      <label><input type="radio" name="musicProvider" value="ace_step_local" checked> ACE-Step（PCローカル生成→音源取込）</label>
+      <label><input type="radio" name="musicProvider" value="auto_bgm" checked> 自動BGM（無料・オリジナル生成）</label>
+       <label><input type="radio" name="musicProvider" value="ace_step_local"> ACE-Step（PCローカル生成→音源取込）</label>
       <label><input type="radio" name="musicProvider" value="suno_manual"> Suno（手動生成）</label>
       <label><input type="radio" name="musicProvider" value="imported_audio"> 外部音源（MusicSeed / BandLab / GarageBand）</label>
       <label><input type="radio" name="musicProvider" value="none"> 音楽なし</label>
@@ -169,7 +170,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
   </section>
   <section class="final-card detail-card" id="memoryCard">
     <h2>🧠 継続記憶・Obsidian</h2>
-    <p>この端末に学習メモを保存し、次回の実行前に関連メモを読み込みます。MarkdownでObsidianと往復できます。未確認のAI生成内容は事実として扱いません。</p>
+    <p>学習メモはこのブラウザ内に保存されます。Obsidianとの連携は現状、Markdownの手動書き出し・読み込みです。Obsidianへの自動同期や直接接続はありません。未確認のAI生成内容は事実として扱いません。</p>
     <p id="memorySummary">継続記憶を確認中…</p>
     <div class="memory-actions">
       <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す</button>
@@ -330,7 +331,7 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  revisionRound:0,
  videoUrl:'',
  videoReady:false,
- musicProvider:'ace_step_local',
+ musicProvider:'auto_bgm',
  musicGenre:'rock',
  musicAudioBase64:'',
  musicFilename:'',
@@ -472,7 +473,7 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
  x.value='';start();render();
  try{
    const memory=buildMemoryContext(state.instruction);
-   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text});
+   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text,music_provider:state.musicProvider||'auto_bgm',music_genre:state.musicGenre||'acoustic'});
    if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込（ID: '+memory.ids.join(', ')+')');else log('継続記憶：関連メモなし。標準安全ルールで開始');
    let r=null, data=null;
    // 動画生成でサーバーが再起動した場合に画面が無期限待機しないよう、1回だけ送信しタイムアウトを設定。
@@ -733,7 +734,8 @@ function updateMusicUI(){
  if(file) file.disabled=state.musicProvider!=='imported_audio';
  if(help){
    const h={
-    ace_step_local:'PCのACE-Stepで生成した音源をこの画面の外部音源として取り込めます。',
+    auto_bgm:'動画ごとにオリジナルの控えめなBGMを無料で生成し、ナレーションとミックスします。外部サービス・課金は使いません。',
+     ace_step_local:'PCのACE-Stepで生成した音源をこの画面の外部音源として取り込めます。',
     suno_manual:'Suno用指示を作成し、Sunoで生成・ダウンロードした音源を外部音源として取り込めます。',
     imported_audio:'MusicSeed / BandLab / GarageBand等で書き出した音源を選択してください。',
     none:'音楽を使わず、ナレーション中心で制作します。'
