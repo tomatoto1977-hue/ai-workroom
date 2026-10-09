@@ -8,7 +8,7 @@ import api
 
 class VideoQualitySafetyTests(unittest.TestCase):
     def test_narration_removes_outline_and_timecodes(self):
-        results = [{"role": "文章化AI", "text": "【0-3秒】電気代は毎月の明細から確認しましょう。\\n【3-10秒】契約内容を比べるときは条件をそろえてください。\\n【画面字幕】今日、明細を確認"}]
+        results = [{"role": "文章化AI", "text": "【0-3秒】電気代は毎月の明細から確認しましょう。\n【3-10秒】契約内容を比べるときは条件をそろえてください。\n【画面字幕】今日、明細を確認"}]
         narration = api._narration_text("電気代の見直し", results)
         self.assertNotIn("企画書", narration)
         self.assertNotIn("【", narration)
