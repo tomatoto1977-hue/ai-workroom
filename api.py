@@ -95,15 +95,15 @@ def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
     if script:
         lines = []
         for line in script.splitlines():
-            line = re.sub(r"^\\s*(?:【[^】]+】|\\[[^\\]]+\\]|\\d{1,2}[-〜～]\\d{1,2}秒[:：]?)\\s*", "", line).strip()
+            line = re.sub(r"^\s*(?:【[^】]+】|\[[^\]]+\]|\\d{1,2}[-〜～]\\d{1,2}秒[:：]?)\s*", "", line).strip()
             if not line or re.search(r"(画面|字幕|カット|BGM|映像|ナレーション案|構成案|企画書|CTA|フック)", line):
                 continue
             lines.append(line)
-        script = re.sub(r"\\s+", " ", " ".join(lines)).strip()
+        script = re.sub(r"\s+", " ", " ".join(lines)).strip()
         if len(script) < 55 or re.match(r"^(テーマ|企画|目的|ターゲット|構成|結論|調査|リサーチ|STEP|今回の動画)", script, re.I) or "【" in script:
             script = ""
     if not script:
-        topic = clean(instruction).split("\\n", 1)[0].strip(" 。")
+        topic = clean(instruction).split("\n", 1)[0].strip(" 。")
         script = (f"ちょっと聞いてください。{topic}、なんとなくそのままにしていませんか？"
                   "大切なのは、いきなり全部を変えることではありません。"
                   "まずは今の状況をひとつ確認して、比べられる情報があれば条件をそろえて見てみましょう。"
