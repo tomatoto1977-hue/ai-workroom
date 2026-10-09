@@ -474,19 +474,15 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
    const memory=buildMemoryContext(state.instruction);
    const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text});
    if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込（ID: '+memory.ids.join(', ')+')');else log('継続記憶：関連メモなし。標準安全ルールで開始');
-   let r=null, data=null, lastError=null;
-   for(let attempt=0;attempt<2;attempt++){
-     try{
-       r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
-       if(!r.ok) throw new Error('HTTP '+r.status);
-       data=await r.json();
-       break;
-     }catch(e){
-       lastError=e;
-       if(attempt===0) await new Promise(resolve=>setTimeout(resolve,1800));
-     }
-   }
-   if(!data) throw lastError||new Error('API response unavailable');
+   let r=null, data=null;
+   // 動画生成でサーバーが再起動した場合に画面が無期限待機しないよう、1回だけ送信しタイムアウトを設定。
+   r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{
+     method:'GET',cache:'no-store',headers:{'Accept':'application/json'},
+     signal:AbortSignal.timeout(180000)
+   });
+   if(!r.ok) throw new Error('HTTP '+r.status);
+   data=await r.json();
+   if(!data) throw new Error('API response unavailable');
    recordRunMemory(data,state.instruction,memory);
    if(data.memory_context_loaded)log('統括AI：継続記憶 '+data.memory_context_chars+'文字を制作・監査に引き継ぎ');
    if(data.selected_theme){
@@ -557,7 +553,7 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
      state.quality=state.quality.map(()=>state.score);
      render();
    }
- }catch(e){const msg=String(e&&e.message||e).slice(0,80);log('AI API：接続エラー → '+msg);document.getElementById('managerTask').textContent='動画制作APIへの接続に失敗しました。再読み込み後にもう一度お試しください';document.getElementById('nextAction').textContent='API接続を再確認してください';}
+ }catch(e){const msg=String(e&&e.message||e).slice(0,80);log('AI API：接続エラー → '+msg);document.getElementById('managerTask').textContent=(e&&e.name==='TimeoutError')?'API応答が3分以内に届きませんでした。サーバー状態を確認してから再試行してください':'動画制作APIへの接続に失敗しました。サーバー状態を確認してから再試行してください';document.getElementById('nextAction').textContent='API接続エラー：再試行前に状態を確認';const pipeline=document.getElementById('pipelineStatus');if(pipeline)pipeline.textContent='停止：API応答なし。再起動・メモリ不足の可能性があります。重ねて実行せず、サーバー状態を確認してください';}
  finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
 }
 async function reviseFromRequest(){
