@@ -885,6 +885,15 @@ async def orchestrate(req: RunRequest):
         source_titles = [str(x.get("title") or x.get("query") or x.get("type") or "") for x in selected_theme.get("sources", [])]
         news_titles = [str(x.get("title") or "") for x in selected_theme.get("news", [])[:3]]
         research_text = ("テーマ候補: " + str(selected_theme.get("raw_trend") or selected_theme.get("title") or "なし") +
+                         "\n選出方式: " + str(selected_theme.get("engine") or "不明") +
+                         "\n参照候補: " + (" / ".join(source_titles[:3]) if source_titles else "出典候補なし") +
+                         "\n関連ニュース候補: " + (" / ".join(news_titles) if news_titles else "関連ニュース取得なし") +
+                         "\n注意: トレンドやニュース見出しは需要シグナルであり、事実確認の代わりにはなりません。")
+        results.append({"role": "情報収集AI", "status": "completed" if source_titles or news_titles else "needs_review", "text": research_text})
+    if selected_theme:
+        source_titles = [str(x.get("title") or x.get("query") or x.get("type") or "") for x in selected_theme.get("sources", [])]
+        news_titles = [str(x.get("title") or "") for x in selected_theme.get("news", [])[:3]]
+        research_text = ("テーマ候補: " + str(selected_theme.get("raw_trend") or selected_theme.get("title") or "なし") +
                          "\\n選出方式: " + str(selected_theme.get("engine") or "不明") +
                          "\\n参照候補: " + (" / ".join(source_titles[:3]) if source_titles else "出典候補なし") +
                          "\\n関連ニュース候補: " + (" / ".join(news_titles) if news_titles else "関連ニュース取得なし") +
