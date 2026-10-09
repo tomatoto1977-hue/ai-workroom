@@ -433,10 +433,9 @@ async function startFirstVideo(){
    if(rev) rev.textContent='現在の制作工程が進行中です。完了までお待ちください。';
    return;
  }
- const instruction=(state.instruction&&state.instruction!=='節約・家計ショート動画')
-   ? state.instruction
-   : '毎日の情報収集から視聴者に役立つテーマを選び、著作権・特定人物への依存を避けたショート動画を初回制作する。テーマ選出→リサーチ→企画→制作→品質確認まで実行する。';
  const input=document.getElementById('instruction');
+ const typedInstruction=(input&&input.value||'').trim();
+ const instruction=typedInstruction||'毎日の情報収集から視聴者に役立つテーマを選び、著作権・特定人物への依存を避けたショート動画を初回制作する。テーマ選出→リサーチ→企画→制作→品質確認まで実行する。';
  if(input) input.value=instruction;
  if(btn){btn.disabled=true;btn.textContent='制作開始…';}
  if(next) next.textContent='制作リクエストを送信しています…';
