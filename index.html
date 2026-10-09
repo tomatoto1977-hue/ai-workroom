@@ -187,6 +187,10 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
       <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す</button>
       <label class="memory-file">Obsidianから読み込む<input id="memoryImportFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
       <button type="button" onclick="saveCurrentRule()">今回の指示を学習ルールとして保存</button>
+      <button type="button" onclick="refreshMemoryMaintenance()">蓄積メモを点検</button>
+    </div>
+    <div id="memoryMaintenanceReport" role="status" aria-live="polite" style="white-space:pre-line;margin-top:10px;padding:10px;border:1px solid #e4d5ca;border-radius:12px;background:#fffaf5;font-size:12px;line-height:1.55">
+      保存メモの重複・古さ・過去バグの再発防止情報を点検します。削除や上書きは自動実行しません。
     </div>
   </section>
   <div class="final-footer"><span>安全ゲート：<b>人間承認必須</b>　公開・投稿OFF</span><span id="finalProject">プロジェクト：—</span></div>
@@ -241,6 +245,7 @@ function saveMemoryEntry(entry){
 function renderMemoryStatus(){
  const list=readMemories();const el=document.getElementById('memorySummary');
  if(el)el.textContent='保存済み '+list.length+'件 ／ ルール '+list.filter(m=>m.kind==='rule').length+'件 ／ 調査・実行記録 '+list.filter(m=>m.kind!=='rule').length+'件。保存先：このブラウザ（Obsidian同期はMarkdown経由）';
+ refreshMemoryMaintenance();
 }
 function memoryTokens(s){return (String(s||'').toLowerCase().match(/[一-龥ぁ-んァ-ヶa-z0-9]{2,}/g)||[]).slice(0,80);}
 function buildMemoryContext(instruction){
@@ -266,6 +271,48 @@ function saveCurrentRule(){
  if(!text){showToast('保存する指示がありません');return;}
  const ok=saveMemoryEntry({kind:'rule',title:'ユーザー指定ルール：'+text.slice(0,80),status:'user_confirmed',tags:['rule','user-confirmed'],content:text});
  showToast(ok?'学習ルールとして保存しました':'同じ内容が既に保存されています');
+}
+function memoryMaintenanceAudit(){
+ const list=readMemories();const now=Date.now();const days=90*24*60*60*1000;
+ const norm=s=>String(s||'').toLowerCase().replace(/[\\s、。,.！!？?「」『』【】（）()・:：]/g,'').slice(0,500);
+ const tokens=s=>new Set((String(s||'').toLowerCase().match(/[一-龥ぁ-んァ-ヶa-z0-9]{2,}/g)||[]));
+ const jaccard=(a,b)=>{const A=tokens(a),B=tokens(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++;});return n/Math.max(1,new Set([...A,...B]).size);};
+ const duplicates=[];const seen=new Set();
+ for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){
+  const a=list[i],b=list[j];const exact=norm(a.title)===norm(b.title)||norm(a.content)===norm(b.content);
+  const similar=(String(a.content||'').length>45&&String(b.content||'').length>45&&jaccard(a.title+' '+a.content,b.title+' '+b.content)>=0.82);
+  if((exact||similar)&&!seen.has(a.id+'|'+b.id)){duplicates.push({a,b});seen.add(a.id+'|'+b.id);}
+ }
+ const stale=list.filter(m=>m.kind!=='rule'&&!['archived','superseded'].includes(String(m.status||'').toLowerCase())&&Number.isFinite(Date.parse(m.created_at||''))&&now-Date.parse(m.created_at)>days);
+ const bugTerms=/バグ|不具合|エラー|失敗|再発|修正|障害|例外|regression|bug|error/i;
+ const preventionTerms=/原因|対策|再発防止|確認テスト|テスト|検証|回避策|予防|root cause|regression test/i;
+ const weakBugLessons=list.filter(m=>bugTerms.test(m.title+' '+m.content)&&!preventionTerms.test(m.content));
+ const rules=list.filter(m=>m.kind==='rule'&&m.status==='user_confirmed');
+ const conflictHints=[];
+ const opposite=[['禁止','許可'],['OFF','ON'],['しない','する'],['無効','有効'],['停止','実行']];
+ for(let i=0;i<rules.length;i++)for(let j=i+1;j<rules.length;j++){
+  const a=rules[i],b=rules[j];
+  if(opposite.some(pair=>(a.content.includes(pair[0])&&b.content.includes(pair[1]))||(a.content.includes(pair[1])&&b.content.includes(pair[0])))&&jaccard(a.content,b.content)>0.12)conflictHints.push({a,b});
+ }
+ return {count:list.length,duplicates,stale,weakBugLessons,conflictHints,capacityWarning:list.length>=80};
+}
+function refreshMemoryMaintenance(){
+ const r=memoryMaintenanceAudit();const el=document.getElementById('memoryMaintenanceReport');if(!el)return;
+ const lines=[
+  '点検結果：保存 '+r.count+'件 / 100件上限',
+  '重複・類似候補：'+r.duplicates.length+'組',
+  '90日以上経過した調査・実行記録：'+r.stale.length+'件',
+  '原因・対策・テスト記録が不足している不具合候補：'+r.weakBugLessons.length+'件',
+  '矛盾の可能性がある確定ルール：'+r.conflictHints.length+'組',
+  r.capacityWarning?'注意：保存上限に近づいています。Markdownを書き出して保管庫へ退避してください。':'保存容量：現時点では警告水準未満です。',
+  '安全動作：この点検は候補を抽出するだけです。自動削除・自動上書き・ルールの自動変更は行いません。'
+ ];
+ const details=[];
+ r.duplicates.slice(0,5).forEach(x=>details.push('重複候補：'+x.a.title+' ↔ '+x.b.title));
+ r.stale.slice(0,5).forEach(x=>details.push('古い記録候補：'+x.title+'（'+String(x.created_at||'日付不明').slice(0,10)+'）'));
+ r.weakBugLessons.slice(0,5).forEach(x=>details.push('再発防止情報不足：'+x.title));
+ r.conflictHints.slice(0,5).forEach(x=>details.push('ルール要確認：'+x.a.title+' ↔ '+x.b.title));
+ el.textContent=lines.concat(details.length?['--- 要確認候補 ---',...details]:['要確認候補は検出されませんでした。']).join('\n');
 }
 function exportObsidianMemory(){
  const list=readMemories();let md='# AI作業室 継続記憶\n\n更新日時：'+new Date().toISOString()+'\n\nこのファイルはAI作業室の学習メモです。未確認情報は事実として扱わず、公開前に人間が確認してください。\n\n';
