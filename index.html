@@ -74,6 +74,74 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .flow-track{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;align-items:stretch}.flow-step{position:relative;padding:8px 7px;border:1px solid #e5d8cf;border-radius:11px;background:#fffaf5;min-width:0}.flow-step.active{border:2px solid #d9b99d;background:#fff5ea}.flow-step.done{background:#f2f7ef;border-color:#d5e3d0}.flow-num{font-size:7px;font-weight:900;color:#94705b}.flow-step b{display:block;font-size:8px;margin-top:3px}.flow-step small{display:block;font-size:6.5px;line-height:1.35;color:#806f65;margin-top:2px}.flow-dot{position:absolute;right:6px;top:6px;width:7px;height:7px;border-radius:50%;background:#d7c8bc}.flow-step.active .flow-dot{background:#7654d9}.flow-step.done .flow-dot{background:#78916e}
 @media(max-width:700px){.theme-flow{padding:10px;border-radius:15px}.theme-flow h2{font-size:10px}.theme-flow-sub{font-size:6.5px;margin-bottom:7px}.flow-track{grid-template-columns:repeat(2,1fr);gap:6px}.flow-step{padding:7px 7px;min-height:62px}.flow-step b{font-size:7.5px}.flow-step small{font-size:6px}.flow-step:nth-child(5){grid-column:1/2}.flow-step:nth-child(6){grid-column:2/3}}
 .first-video-action{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px;padding:10px 11px;border:2px solid #d9b99d;border-radius:14px;background:#fff8f0}.first-video-action b{display:block;font-size:11px}.first-video-action small{display:block;font-size:7px;color:#806f65;margin-top:3px}.first-video-action button{border:0;border-radius:12px;padding:10px 16px;background:#7654d9;color:#fff;font-size:10px;font-weight:900;white-space:nowrap;box-shadow:0 4px 10px rgba(118,84,217,.2)}.first-video-action button:disabled{opacity:.55}@media(max-width:700px){.first-video-action{padding:9px;gap:7px}.first-video-action b{font-size:9px}.first-video-action small{font-size:6px;max-width:190px}.first-video-action button{padding:9px 11px;font-size:9px;border-radius:11px}}</style>
+
+<style id="cohesive-ui-overrides">
+:root{--ink:#352b28;--muted:#766760;--paper:#f7f3ef;--card:#fffdfa;--line:#e7d9cf;--accent:#7c5a96;--accent-soft:#eee5f3;--ok:#3f765b;--warn:#a66b2e;--shadow:0 8px 24px rgba(54,38,30,.07)}
+html,body{background:var(--paper)!important;color:var(--ink)!important}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;line-height:1.55}
+.shell{display:block!important;width:100%;padding:18px!important;overflow:visible!important}
+.artboard{width:min(1120px,100%)!important;max-width:1120px!important;height:auto!important;min-height:0!important;aspect-ratio:auto!important;overflow:visible!important;margin:0 auto 18px!important;padding:18px!important;display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px!important;background:var(--card)!important;border:1px solid var(--line);border-radius:22px!important;box-shadow:var(--shadow)!important}
+.reference,.hot,.dynamic-agents,.thought,.handoff-layer{display:none!important}
+.project,.agents,.manager,.log,.gate,.control,.status,.revision-panel{position:relative!important;inset:auto!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:auto!important;height:auto!important;max-width:none!important;min-width:0!important;transform:none!important;grid-row:auto!important}
+.project{grid-column:1/-1!important;padding:14px 16px!important;border:1px solid var(--line)!important;border-radius:15px!important;background:#fbf7fc!important;box-shadow:none!important}
+.project strong{font-size:17px!important;color:var(--ink)}
+.project span{font-size:12px!important;color:var(--muted)}
+.agents{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important;height:auto!important;z-index:1!important}
+.agent,.agents .agent{position:relative!important;min-height:105px!important;height:auto!important;padding:12px 10px 12px 42px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:#fff!important;box-shadow:none!important;opacity:1!important;overflow:hidden!important}
+.agent b{font-size:12px!important;color:var(--ink)}
+.agent small{font-size:10px!important;color:var(--muted)!important;white-space:normal!important;line-height:1.35}
+.agent .avatar{left:9px!important;top:11px!important;width:25px!important;height:25px!important;border:1px solid #d8c8e1!important;background:var(--accent-soft)!important}
+.bar,.dyn-card .mini-bar{height:5px!important;background:#eee7e2!important;border-radius:8px!important}
+.bar i{background:var(--accent)!important}
+.agent.done{border-color:#b9d4c2!important;background:#f8fcf9!important}
+.agent.waiting{opacity:.82!important}
+.manager{grid-column:1/span 8!important;grid-row:3!important;padding:14px!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important;background:#fff!important}
+.manager b{font-size:14px!important}
+.manager small{font-size:12px!important;line-height:1.5}
+.manager .quality{color:var(--accent)!important}
+.gate{grid-column:9/-1!important;grid-row:3!important;padding:14px!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important;background:#fbf7fc!important}
+.gate b{font-size:12px!important}
+.gate strong{font-size:25px!important;color:var(--accent)!important}
+.gate small{font-size:10px!important;line-height:1.4}
+.log{grid-column:1/-1!important;grid-row:4!important;max-height:220px!important;overflow:auto!important;padding:14px!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important;background:#fff!important}
+.log h3{font-size:14px!important;margin-bottom:8px!important}
+.log div{font-size:11px!important;line-height:1.5!important;color:var(--muted);padding:5px 0!important}
+.control{grid-column:1/-1!important;grid-row:6!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;padding:14px!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important;background:#fbf7fc!important;z-index:2!important}
+.control label{grid-column:1/-1!important;font-size:13px!important;color:var(--ink)!important;white-space:normal!important}
+.control .hint{position:static!important;grid-column:1/-1!important;order:4!important;margin:0!important;font-size:11px!important;color:var(--muted)!important}
+.control input{min-height:44px!important;padding:10px 13px!important;border:1px solid var(--line)!important;border-radius:11px!important;font-size:14px!important}
+.control button,.revision-actions button,.result-actions button,.final-card button{min-height:44px;border-radius:11px!important;background:var(--accent)!important;color:#fff!important;font-size:13px!important;padding:10px 15px!important}
+.status{grid-column:1/-1!important;grid-row:7!important;display:inline-flex!important;justify-self:start!important;padding:7px 11px!important;font-size:11px!important;background:#f1f6f1!important;color:var(--ok)!important;box-shadow:none!important}
+.revision-panel{grid-column:1/-1!important;grid-row:5!important;padding:14px!important;border:1px solid var(--line)!important;border-radius:15px!important;box-shadow:none!important;background:#fff!important}
+.revision-panel h3{font-size:14px!important}
+.revision-panel p,.revision-panel .revision-current{font-size:11px!important;line-height:1.5}
+.revision-panel textarea{font-size:14px!important;border:1px solid var(--line)!important;border-radius:11px!important}
+.toast{position:fixed!important;top:20px!important;left:50%!important;max-width:calc(100vw - 28px)!important;z-index:9999!important;font-size:14px!important}
+.final-card{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:18px!important;box-shadow:var(--shadow)!important;color:var(--ink)!important;padding:18px!important}
+.result-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.result-head strong,.final-card h2{font-size:16px!important;color:var(--ink)!important}
+.result-badge{border-radius:999px!important;background:var(--accent-soft)!important;color:var(--accent)!important;padding:5px 10px!important;font-size:11px!important;font-weight:800}
+textarea,input,select{accent-color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #cbb4d9!important;outline-offset:2px}
+button:disabled{opacity:.55!important;cursor:not-allowed!important}
+@media(max-width:700px){
+ .shell{padding:10px!important}
+ .artboard{padding:12px!important;gap:10px!important;border-radius:16px!important}
+ .project{padding:12px!important}
+ .project strong{font-size:14px!important;display:block}
+ .project span{float:none!important;display:block!important;margin-top:3px}
+ .agents{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+ .agent,.agents .agent{min-height:88px!important;padding:10px 8px 10px 38px!important}
+ .agent b{font-size:11px!important}
+ .agent small{font-size:10px!important}
+ .manager,.gate,.log,.control,.revision-panel,.status{grid-column:1/-1!important}
+ .control{grid-template-columns:minmax(0,1fr)!important}
+ .control label,.control .hint{grid-column:1/-1!important}
+ .control button{width:100%!important}
+ .final-card{padding:14px!important;border-radius:14px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+</style>
 </head>
 <body>
 <div class="shell"><main class="artboard" id="board">
@@ -321,7 +389,7 @@ const roles=[
 const positions=[
  {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
 ];
-let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false,apiOnline=false,apiConfigured=false;
+let paused=false,timer=null,logs=[],apiDriven=true,workflowRunning=false,apiOnline=false,apiConfigured=false;
 const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
@@ -421,7 +489,7 @@ async function playWorkflow(data){
  log('API応答を受領。返却された実データを基準に状態を更新');
  log('品質監査：'+score+'点 / '+(state.auditPassed?'95点以上で合格':'95点未満または未合格'));
  log('動画生成：'+(video&&video.video_url?'ファイルURLあり':'ファイルURLなし')+' / 音声埋込：'+(video&&video.audio_embedded?'あり':'なし'));
- workflowRunning=false;apiDriven=false;render();start();
+ workflowRunning=false;apiDriven=true;render();start();
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length)log('待機中：実際のAPI処理が開始されるとログが記録されます');render();}
 async function startFirstVideo(){
@@ -454,8 +522,8 @@ async function startFirstVideo(){
    try{syncFinalUI();}catch(e){log('画面更新エラー：'+String(e&&e.message||e).slice(0,80));}
  }
 }
-function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
-function newProject(){state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
+function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　実際のAPI結果を表示';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
+function newProject(){apiDriven=true;state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){
  state.auditPassed=false;
  if(Number(state.score)>=95) state.score=94;
@@ -597,7 +665,7 @@ async function reviseFromRequest(){
    document.getElementById('revisionStatus').textContent='編集処理に接続できませんでした。もう一度お試しください';
    log('編集AI：接続または編集処理でエラー。成果物は変更していません');
  }finally{
-   workflowRunning=false;apiDriven=false;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
+   workflowRunning=false;apiDriven=true;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
  }
 }
 async function checkApi(){
