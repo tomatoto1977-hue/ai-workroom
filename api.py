@@ -649,7 +649,7 @@ def _render_video_files(
     ff=imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
         ff,"-y","-framerate","1/4","-i",str(work/"%02d.png"),
-        "-vf","fps=24","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","1",
+        "-vf","zoompan=z='min(zoom+0.0008,1.08)':d=96:s=720x1280:fps=24","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","1",
         "-profile:v","main","-level","3.1","-pix_fmt","yuv420p","-r","24","-movflags","+faststart",str(out)
     ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
 
