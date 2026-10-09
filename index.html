@@ -252,14 +252,14 @@ function buildMemoryContext(instruction){
  let out='';for(const x of selected){const m=x.m;const part='['+m.kind+' / '+m.status+' / '+m.created_at+'] '+m.title+'\n'+m.content.slice(0,180)+(m.source_url?'\n出典URL: '+m.source_url:'')+'\n\n';if((out+part).length>650)continue;out+=part;}
  return {text:out.trim(),count:selected.length,ids:selected.map(x=>x.m.id)};
 }
-function recordRunMemory(data,instruction){
+function recordRunMemory(data,instruction,memoryInfo){
  const gate=data&&data.gate||{};const theme=data&&data.selected_theme;
  if(theme){const src=(theme.sources||[]).map(x=>(x.type||'出典')+': '+(x.title||x.query||'')+(x.url?' '+x.url:'')).join('\n');
  const newsDetails=(theme.news||[]).slice(0,5).map(n=>(n.title||'無題')+' | '+(n.source||'出典不明')+' | '+(n.published_at||n.pubDate||'日付不明')+(n.url?' | '+n.url:'')).join('\n');
  const videoSignals=(theme.youtube_videos||[]).slice(0,3).map(v=>(v.title||'動画タイトル不明')+' | '+(v.channelTitle||v.channel||'チャンネル不明')+' | '+ (v.published_at||v.publishedAt||'日付不明')).join('\n');
  saveMemoryEntry({kind:'research',title:'調査テーマ：'+(theme.title||instruction),status:'unverified',source_url:(theme.sources||[]).find(x=>x.url)?.url||'',tags:['research','theme'],content:'AI作業室が選定したテーマ。これは需要の確定や事実の証明ではありません。\nテーマ：'+(theme.title||instruction)+'\n生トレンド：'+(theme.raw_trend||'なし')+'\nスコア：'+(theme.score??'不明')+'\n選出日時：'+(theme.selected_at||new Date().toISOString())+'\n出典・検索情報：\n'+(src||'出典情報なし')+'\n関連ニュース候補：\n'+(newsDetails||'ニュース候補なし')+'\n動画の人気シグナル（参考のみ・素材として再利用しない）：\n'+(videoSignals||'動画シグナルなし')+'\nニュース件数：'+((theme.news||[]).length)+'。原資料を再確認してから利用すること。'});}
  const snippets=(data&&Array.isArray(data.results)?data.results:[]).filter(x=>x&&x.text&&['文章化AI','エビデンスAI','市場調査AI','統括AI'].includes(x.role)).map(x=>'【'+x.role+'】 '+String(x.text).replace(/\s+/g,' ').slice(0,420)).join('\n');
- saveMemoryEntry({kind:'run',title:'実行記録：'+String(theme&&theme.title||instruction).slice(0,120),status:gate.passed?'ai_audit_passed_human_review_still_required':'review_required',tags:['execution',gate.passed?'audit-pass':'review'],content:'これはAI作業室の生成・監査記録であり、独立検証済みの事実ではありません。\n依頼テーマ：'+instruction+'\n実行モード：'+(data.mode||'unknown')+'\n品質点：'+(gate.score??'不明')+'/100、AI監査合格：'+(gate.passed===true?'はい（人間確認は別途必須）':'いいえ／未確認')+'\n改善回数：'+(gate.improvement_rounds??0)+'\n記憶コンテキスト読込：'+(data.memory_context_loaded?'あり':'なし')+'\n担当メモ：\n'+(snippets||'担当メモなし')});
+ saveMemoryEntry({kind:'run',title:'実行記録：'+String(theme&&theme.title||instruction).slice(0,120),status:gate.passed?'ai_audit_passed_human_review_still_required':'review_required',tags:['execution',gate.passed?'audit-pass':'review'],content:'これはAI作業室の生成・監査記録であり、独立検証済みの事実ではありません。\n依頼テーマ：'+instruction+'\n実行モード：'+(data.mode||'unknown')+'\n品質点：'+(gate.score??'不明')+'/100、AI監査合格：'+(gate.passed===true?'はい（人間確認は別途必須）':'いいえ／未確認')+'\n改善回数：'+(gate.improvement_rounds??0)+'\n記憶コンテキスト読込：'+(data.memory_context_loaded?'あり':'なし')+'\n参照メモID：'+((memoryInfo&&memoryInfo.ids||[]).join(', ')||'なし')+'\n担当メモ：\n'+(snippets||'担当メモなし')});
 }
 function saveCurrentRule(){
  const input=document.getElementById('instruction');const text=String(input?.value?.trim()||state.instruction||'').trim();
@@ -453,7 +453,7 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
  try{
    const memory=buildMemoryContext(state.instruction);
    const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text});
-   if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込');else log('継続記憶：関連メモなし。標準安全ルールで開始');
+   if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込（ID: '+memory.ids.join(', ')+')');else log('継続記憶：関連メモなし。標準安全ルールで開始');
    let r=null, data=null, lastError=null;
    for(let attempt=0;attempt<2;attempt++){
      try{
@@ -467,7 +467,7 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
      }
    }
    if(!data) throw lastError||new Error('API response unavailable');
-   recordRunMemory(data,state.instruction);
+   recordRunMemory(data,state.instruction,memory);
    if(data.memory_context_loaded)log('統括AI：継続記憶 '+data.memory_context_chars+'文字を制作・監査に引き継ぎ');
    if(data.selected_theme){
      state.instruction=data.selected_theme.title||state.instruction;
