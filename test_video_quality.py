@@ -51,5 +51,23 @@ class VideoQualitySafetyTests(unittest.TestCase):
         self.assertIn("特定個人", rules)
 
 
+    def test_full_local_mp4_render_has_video_and_embedded_bgm(self):
+        original_video_dir = api.VIDEO_DIR
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                api.VIDEO_DIR = Path(directory)
+                results = [{"role": "文章化AI", "text": "今回は電気代の明細を確認する方法を紹介します。契約条件をそろえて比較し、公式情報で最新の料金を確認してください。"}]
+                rendered = api._render_video_files(
+                    "電気代の見直し", results, music_provider="auto_bgm"
+                )
+                self.assertTrue(Path(directory, rendered["video_url"].split("/")[-1]).exists())
+                self.assertEqual(rendered["video_qa"]["status"], "PASS")
+                self.assertTrue(rendered["audio_embedded"])
+                self.assertEqual(rendered["music_status"], "generated_free")
+                self.assertEqual(rendered["tts_status"], "disabled")
+        finally:
+            api.VIDEO_DIR = original_video_dir
+
+
 if __name__ == "__main__":
     unittest.main()
