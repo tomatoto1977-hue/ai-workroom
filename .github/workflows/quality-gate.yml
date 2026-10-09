@@ -19,5 +19,20 @@ jobs:
         run: pip install -r requirements-api.txt
       - name: Compile API
         run: python -m py_compile api.py
+      - name: Check frontend JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script>(.*?)</script>", html, flags=re.S)
+          if not scripts:
+              raise SystemExit("No inline JavaScript found")
+          for index, script in enumerate(scripts):
+              Path(f"/tmp/ai-workroom-{index}.js").write_text(script, encoding="utf-8")
+          print(f"Extracted {len(scripts)} inline scripts")
+          PY
+          for script in /tmp/ai-workroom-*.js; do node --check "$script"; done
       - name: Run regression tests
         run: python -m unittest discover -s tests -v
