@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from openai import AsyncOpenAI
 
 from pathlib import Path
+from functools import lru_cache
 import uuid
 import subprocess
 
@@ -19,6 +20,7 @@ from PIL import Image, ImageDraw, ImageFont
 import imageio_ffmpeg
 app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
 
+@lru_cache(maxsize=16)
 def _video_font(size: int):
     # Render環境でも日本語を必ず描画できるよう、同梱IPAexフォント→OSフォントの順で探索。
     candidates = []
@@ -363,9 +365,12 @@ def local_quality_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
         breakdown[name]=score
         evidence[name]=f"{hits}/{len(groups)}観点を確認（API未使用のローカル監査）"
     total=sum(breakdown.values())
-    return {"target":95,"max":100,"score":total,"passed":total>=95,
+    # キーワード検出は意味内容を監査できないため、ローカル判定だけでは絶対にPASSさせない。
+    # フロントエンドはscore>=95を表示条件にするため、UIにも安全側の上限を返す。
+    return {"target":95,"max":100,"score":min(total,94),"raw_score":total,"passed":False,
             "breakdown":breakdown,"evidence":evidence,"auditor":"local_safety_fallback",
-            "reason":"95点未満は合格扱いにせず、改善・再評価へ送る。"}
+            "status":"REVIEW_REQUIRED",
+            "reason":"ローカル監査はキーワード確認のみ。意味内容を検証できないため合格不可。実AI監査または人間による再確認が必要。"}
 
 async def ai_quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[str, Any] | None:
     if not client:
@@ -619,7 +624,7 @@ def _render_video_files(
             filter_graph="[1:a]anull[outa]"
         cmd += ["-filter_complex",filter_graph,"-map","0:v:0","-map","[outa]",
                 "-c:v","copy","-c:a","aac","-b:a","160k",
-                "-shortest","-movflags","+faststart",str(muxed)]
+                "-movflags","+faststart",str(muxed)]
         subprocess.run(cmd,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
         final_out=muxed
         audio_embedded=True
