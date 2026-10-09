@@ -53,7 +53,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .next-card{background:#fffaf4;border:2px solid #d9b99d}.next-line{display:flex;justify-content:space-between;gap:10px;align-items:center}.next-label{font-size:9px;color:#8a7568;font-weight:800}.next-action{font-size:15px;font-weight:900;color:#4c4039}
 .result-card{padding:0;overflow:hidden}.result-head{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid #eaded4}.result-head strong{font-size:12px}.result-badge{font-size:9px;font-weight:900;padding:5px 9px;border-radius:999px;background:#eef6ed;color:#557052}.video-preview{margin:10px;border-radius:13px;min-height:180px;background:#17151a;display:grid;place-items:center;color:#fff;text-align:center;border:1px solid #3b343d}.video-preview b{display:block;font-size:12px}.video-preview span{display:block;font-size:8px;color:#c9bec9;margin-top:5px}.result-actions{display:flex;gap:7px;padding:0 10px 10px}.result-actions button{flex:1;border:0;border-radius:12px;padding:9px;background:#8b6a57;color:#fff;font-size:10px;font-weight:900}.result-actions button.secondary{background:#eee5dd;color:#5e5048}
 .quality-total{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:12px;background:#faf4ee;margin-bottom:8px}.quality-total strong{font-size:23px}.quality-total span{font-size:9px;font-weight:900}.quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.qrow{padding:7px 8px;border:1px solid #eadfd7;border-radius:10px}.qrow-top{display:flex;justify-content:space-between;font-size:8px;font-weight:800}.qbar{height:4px;background:#eadfd5;border-radius:5px;margin-top:5px;overflow:hidden}.qbar i{display:block;height:100%;width:0;background:#8b6a57}
-.agents-mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.mini-agent{padding:8px;border:1px solid #e4d5ca;border-radius:11px;background:#fffaf5}.mini-agent b{font-size:8px}.mini-agent small{display:block;font-size:7px;color:#7d6c63;margin-top:2px}.mini-agent:last-child{grid-column:1/-1}
+.agents-mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.agents-note{font-size:8px;color:#806f65;margin:4px 0 8px}.mini-agent{padding:8px;border:1px solid #e4d5ca;border-radius:11px;background:#fffaf5;min-width:0}.mini-agent b{font-size:8px}.mini-agent small{display:block;font-size:7px;color:#7d6c63;margin-top:2px;line-height:1.35}.mini-agent:last-child{grid-column:1/-1}
 .revision-panel.final-revision{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;padding:12px;background:#fffaf5}.revision-panel.final-revision h3{font-size:12px}.revision-panel.final-revision p{font-size:8px}.revision-panel.final-revision textarea{min-height:64px;font-size:11px}.revision-panel.final-revision .revision-actions button{background:#7654d9}.final-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;font-size:8px;color:#806f65}.final-footer b{color:#557052}
 .final-ui .revision-panel{display:block!important}
 @media(max-width:700px){
@@ -137,7 +137,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
   <aside class="final-side">
     <section class="final-card quality-card">
       <h2>✓ 品質監査</h2>
-      <div class="quality-total"><strong id="finalScore">95</strong><span id="finalGate">95点以上で合格</span></div>
+      <div class="quality-total"><strong id="finalScore">—</strong><span id="finalGate">監査未実施・未合格</span></div>
       <div class="quality-grid">
         <div class="qrow"><div class="qrow-top"><span>事実性</span><b>25</b></div><div class="qbar"><i id="qFact"></i></div></div>
         <div class="qrow"><div class="qrow-top"><span>目的適合</span><b>20</b></div><div class="qbar"><i id="qPurpose"></i></div></div>
@@ -149,13 +149,20 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     </section>
 
     <section class="final-card agents-card">
-      <h2>🤖 AIエージェント</h2>
+      <h2>🤖 AIエージェント（11担当）</h2>
+      <p class="agents-note">担当一覧です。個別の実行状態は、APIの実行ログで確認します。</p>
       <div class="agents-mini" id="agentsMini">
-        <div class="mini-agent"><b>統括AI</b><small>全工程・品質ゲート</small></div>
-        <div class="mini-agent"><b>調査・企画AI</b><small>テーマ・根拠・構成</small></div>
-        <div class="mini-agent"><b>文章・動画AI</b><small>台本・ナレーション・映像</small></div>
-        <div class="mini-agent"><b>チェック・編集AI</b><small>事実・権利・品質</small></div>
-        <div class="mini-agent"><b>実装AI</b><small>次工程への受け渡し</small></div>
+        <div class="mini-agent"><b>統括AI</b><small>全工程・品質ゲート・最終判断</small></div>
+        <div class="mini-agent"><b>市場調査AI</b><small>需要・トレンド・市場情報</small></div>
+        <div class="mini-agent"><b>競争戦略AI</b><small>競合・差別化・戦略</small></div>
+        <div class="mini-agent"><b>企画AI</b><small>テーマ・構成・切り口</small></div>
+        <div class="mini-agent"><b>情報収集AI</b><small>調査・情報整理</small></div>
+        <div class="mini-agent"><b>予算AI</b><small>費用・利用制限・コスト監視</small></div>
+        <div class="mini-agent"><b>文章化AI</b><small>台本・説明文・ナレーション原稿</small></div>
+        <div class="mini-agent"><b>エビデンスAI</b><small>出典・根拠・事実確認</small></div>
+        <div class="mini-agent"><b>動画制作AI</b><small>映像・字幕・音声構成</small></div>
+        <div class="mini-agent"><b>編集AI</b><small>仕上げ・再編集・品質改善</small></div>
+        <div class="mini-agent"><b>実装AI</b><small>実装・テスト・受け渡し</small></div>
       </div>
     </section>
   </aside>
