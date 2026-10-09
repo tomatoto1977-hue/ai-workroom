@@ -389,7 +389,7 @@ const roles=[
 const positions=[
  {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
 ];
-let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false,apiOnline=false,apiConfigured=false;
+let paused=false,timer=null,logs=[],apiDriven=true,workflowRunning=false,apiOnline=false,apiConfigured=false;
 const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
  phases:['working','thinking','working','waiting','working'],
@@ -489,7 +489,7 @@ async function playWorkflow(data){
  log('API応答を受領。返却された実データを基準に状態を更新');
  log('品質監査：'+score+'点 / '+(state.auditPassed?'95点以上で合格':'95点未満または未合格'));
  log('動画生成：'+(video&&video.video_url?'ファイルURLあり':'ファイルURLなし')+' / 音声埋込：'+(video&&video.audio_embedded?'あり':'なし'));
- workflowRunning=false;apiDriven=false;render();start();
+ workflowRunning=false;apiDriven=true;render();start();
 }
 function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length)log('待機中：実際のAPI処理が開始されるとログが記録されます');render();}
 async function startFirstVideo(){
@@ -522,8 +522,8 @@ async function startFirstVideo(){
    try{syncFinalUI();}catch(e){log('画面更新エラー：'+String(e&&e.message||e).slice(0,80));}
  }
 }
-function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
-function newProject(){state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
+function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　実際のAPI結果を表示';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
+function newProject(){apiDriven=true;state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){
  state.auditPassed=false;
  if(Number(state.score)>=95) state.score=94;
@@ -665,7 +665,7 @@ async function reviseFromRequest(){
    document.getElementById('revisionStatus').textContent='編集処理に接続できませんでした。もう一度お試しください';
    log('編集AI：接続または編集処理でエラー。成果物は変更していません');
  }finally{
-   workflowRunning=false;apiDriven=false;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
+   workflowRunning=false;apiDriven=true;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
  }
 }
 async function checkApi(){
