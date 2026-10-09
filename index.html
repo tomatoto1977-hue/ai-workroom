@@ -145,7 +145,7 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
  .control button{width:100%!important}
  .final-card{padding:14px!important;border-radius:14px!important}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+.editor-app-guide{margin-top:8px;padding:10px 11px;background:#faf4ee;border:1px solid #eadfd7;border-radius:11px;font-size:11px;line-height:1.65;white-space:pre-line;color:#5e5048}.editor-app-actions{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}.editor-app-actions button{border:0;border-radius:11px;padding:10px 12px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.editor-app-actions button.secondary{background:#eee5dd;color:#5e5048}.editor-app-card{align-self:start}@media(max-width:700px){.editor-app-card{grid-column:1/-1}.editor-app-actions{grid-template-columns:1fr 1fr}.editor-app-actions button:first-child{grid-column:1/-1}.editor-app-guide{font-size:12px}}.editor-app-guide{margin-top:8px;padding:10px 11px;background:#faf4ee;border:1px solid #eadfd7;border-radius:11px;font-size:11px;line-height:1.65;white-space:pre-line;color:#5e5048}.editor-app-actions{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}.editor-app-actions button{border:0;border-radius:11px;padding:10px 12px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.editor-app-actions button.secondary{background:#eee5dd;color:#5e5048}.editor-app-card{align-self:start}@media(max-width:700px){.editor-app-card{grid-column:1/-1}.editor-app-actions{grid-template-columns:1fr 1fr}.editor-app-actions button:first-child{grid-column:1/-1}.editor-app-guide{font-size:12px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -207,6 +207,23 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
       <textarea id="sunoPrompt" readonly style="width:100%;min-height:90px;margin-top:6px;border-radius:10px;padding:8px"></textarea>
     </div>
     <small id="musicHelp" style="display:block;margin-top:7px;color:#806f65">ACE-StepはPC側で生成した音源を取り込む運用が安全です。</small>
+  </section>
+  <section class="final-card editor-app-card" id="editorAppIntegration">
+    <div class="result-head"><strong>📱 外部編集アプリ連携</strong><span class="result-badge">無料優先</span></div>
+    <p style="margin:8px 0">動画工場の素材を保存し、iPhoneで編集アプリに取り込みます。直接遠隔操作・自動投稿・課金は行いません。</p>
+    <label for="editorAppChoice" style="display:block;font-size:11px;font-weight:800;margin:8px 0 5px">仕上げに使うアプリ</label>
+    <select id="editorAppChoice" style="width:100%;padding:10px;border:1px solid #d9c6b7;border-radius:10px;background:#fff">
+      <option value="vllo">VLLO — カット・字幕・音量調整</option>
+      <option value="alight">Alight Motion — 動き・文字アニメーション</option>
+      <option value="edits">Edits — SNS向けの仕上げ</option>
+    </select>
+    <div id="editorAppGuide" class="editor-app-guide" aria-live="polite">① 素材パックを保存　② ZIPを「ファイル」アプリで展開　③ MP4をVLLOへ読み込み　④ 字幕・音量・余白を確認して書き出す</div>
+    <div class="editor-app-actions">
+      <button type="button" onclick="downloadEditorPack()">編集素材パックを保存（ZIP）</button>
+      <button type="button" class="secondary" onclick="downloadBaseVideo()">ベース動画を保存（MP4）</button>
+      <button type="button" class="secondary" onclick="openEditorApp()">選択したアプリを開く</button>
+    </div>
+    <p id="editorPackStatus" role="status" aria-live="polite" style="margin-top:7px;font-size:10px">素材パックには編集手順・字幕原稿・タイムライン・権利確認項目をまとめます。専用編集プロジェクトファイルではありません。</p>
   </section>
   <aside class="final-side">
     <section class="final-card quality-card">
@@ -790,7 +807,7 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
   if(window.caches) caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});
 }
-window.__AI_WORKROOM_BUILD='20261009-video-e2e-diagnostic-2';</script>
+window.__AI_WORKROOM_BUILD='20261009-editor-apps-pack-v1';</script>
 <script>
 function syncThemeFlow(){
  const steps=document.querySelectorAll('#themeFlow .flow-step');
@@ -949,6 +966,22 @@ function playNarration(){
  window.speechSynthesis.speak(u);
  log('ナレーション：iPhoneの日本語音声で確認再生');
 }
+const EDITOR_APP_GUIDES={
+ vllo:{name:'VLLO',url:'https://apps.apple.com/jp/search?term=VLLO',steps:'① ZIPを「ファイル」アプリで展開\\n② MP4をVLLOへ読み込む\\n③ 字幕原稿を参考にテロップを配置\\n④ ナレーションとBGMの音量を調整\\n⑤ 1080×1920で書き出して全編確認'},
+ alight:{name:'Alight Motion',url:'https://apps.apple.com/jp/search?term=Alight%20Motion',steps:'① ZIPを「ファイル」アプリで展開\\n② MP4を新規プロジェクトへ読み込む\\n③ タイムラインを参考に文字・図形・キーフレーム演出を追加\\n④ SNS UIに重要な文字が隠れないよう配置\\n⑤ 書き出したMP4を全編確認'},
+ edits:{name:'Edits',url:'https://apps.apple.com/jp/search?term=Edits%20Instagram',steps:'① ZIPを「ファイル」アプリで展開\\n② MP4をEditsへ読み込む\\n③ カット・字幕・音声の聞きやすさを確認\\n④ SNS UIに字幕が隠れないよう配置\\n⑤ MP4を書き出し、公開は手動で判断'}
+};
+function updateEditorAppGuide(){const s=document.getElementById('editorAppChoice'),o=document.getElementById('editorAppGuide');if(s&&o)o.textContent=(EDITOR_APP_GUIDES[s.value]||EDITOR_APP_GUIDES.vllo).steps;}
+document.getElementById('editorAppChoice')?.addEventListener('change',updateEditorAppGuide);
+function editorScriptText(){return String(state.narrationText||'').trim()||'ナレーション原稿はまだ取得できていません。台本生成後に再度書き出してください。';}
+function editorSegments(){const script=editorScriptText();const lines=script.split(/(?<=[。！？!?])\s*|\n+/).map(x=>x.trim()).filter(Boolean);const duration=Number(document.getElementById('completedVideo')?.duration)||28;const step=duration/Math.max(1,lines.length);return {duration,segments:lines.map((text,i)=>({index:i+1,start_seconds:Math.round(i*step*100)/100,end_seconds:Math.round((i+1)*step*100)/100,caption:text}))};}
+function makeSrt(){const x=editorSegments();const stamp=n=>{let ms=Math.round(n*1000);const h=String(Math.floor(ms/3600000)).padStart(2,'0');ms%=3600000;const m=String(Math.floor(ms/60000)).padStart(2,'0');ms%=60000;const s=String(Math.floor(ms/1000)).padStart(2,'0');ms%=1000;return h+':'+m+':'+s+','+String(ms).padStart(3,'0');};return x.segments.map((v,i)=>(i+1)+'\n'+stamp(v.start_seconds)+' --> '+stamp(v.end_seconds)+'\n'+v.caption).join('\n\n');}
+function zipCrc32(a){let c=0xffffffff;for(let i=0;i<a.length;i++){c^=a[i];for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
+function zipStore(files){const e=new TextEncoder(),local=[],central=[];let off=0;const u16=n=>[n&255,n>>>8&255],u32=n=>[n&255,n>>>8&255,n>>>16&255,n>>>24&255];for(const f of files){const name=e.encode(f.name),data=e.encode(f.data),crc=zipCrc32(data);local.push(new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]));central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off),...name]));off+=local[local.length-1].length;}const cs=central.reduce((n,x)=>n+x.length,0);const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(cs),...u32(off),...u16(0)]);return new Blob([...local,...central,end],{type:'application/zip'});}
+function downloadEditorBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+function downloadEditorPack(){try{const app=EDITOR_APP_GUIDES[document.getElementById('editorAppChoice')?.value||'vllo'];const x=editorSegments();const timeline={format:'ai-workroom-editor-pack-v1',generated_at:new Date().toISOString(),project:state.instruction||'AI作業室ショート動画',video:{width:1080,height:1920,fps:30,duration_seconds:Math.round(x.duration*100)/100,mp4_downloaded_separately:true},segments:x.segments,safety:{human_review_required:true,auto_publish:false,paid_operations:false,auto_login:false},native_project_file_generated:false};const readme='AI作業室 編集素材パック\\n選択アプリ：'+app.name+'\\n\\nZIPをiPhoneの「ファイル」で展開し、別途保存したMP4を選択アプリへ手動で読み込んでください。narration.txtとsubtitles.srtは参照用です。SRTの直接取り込みは保証しません。timeline.jsonの秒数は目安なので、音声に合わせて調整してください。\\n\\n安全設定：自動投稿OFF／課金操作OFF／自動ログインOFF／人間承認必須。これは汎用素材パックであり、アプリ固有のネイティブ編集プロジェクトではありません。';const qa='公開前チェックリスト\\n[ ] 縦型1080×1920\\n[ ] 字幕と音声のタイミング一致\\n[ ] 重要情報が画面端・SNS UIに隠れない\\n[ ] ナレーションがBGMより聞き取りやすい\\n[ ] 画像・音源・フォントの利用条件を確認\\n[ ] 誤情報や未確認の断定がない\\n[ ] 最初から最後まで再生確認\\n[ ] 人間が公開可否を判断\\n[ ] 自動投稿・課金操作OFF';const blob=zipStore([{name:'README_使い方.txt',data:readme},{name:'timeline.json',data:JSON.stringify(timeline,null,2)},{name:'narration.txt',data:editorScriptText()},{name:'subtitles.srt',data:makeSrt()},{name:'公開前チェックリスト.txt',data:qa},{name:'編集手順.txt',data:app.steps}]);downloadEditorBlob(blob,'AI作業室_編集素材パック.zip');const s=document.getElementById('editorPackStatus');if(s)s.textContent='ZIPを作成しました。MP4本体は別ボタンで保存してください。字幕の時間は目安です。';log('編集アプリ連携：'+app.name+'用の素材パックを作成');}catch(e){const s=document.getElementById('editorPackStatus');if(s)s.textContent='素材パック作成エラー：'+String(e&&e.message||e);}}
+async function downloadBaseVideo(){try{const v=document.getElementById('completedVideo');const url=state.videoBlobUrl||state.videoUrl||v?.src;if(!state.videoReady||!url||url==='#'){showToast('先に動画工場でMP4を生成してください');return;}const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();if(!b.size)throw new Error('empty MP4');downloadEditorBlob(b,'AI作業室_ベース動画.mp4');const s=document.getElementById('editorPackStatus');if(s)s.textContent='MP4保存を開始しました。iPhoneのダウンロード項目または「ファイル」を確認してください。';}catch(e){const s=document.getElementById('editorPackStatus');if(s)s.textContent='MP4を保存できませんでした。プレビューの「動画を別画面で開く」をお試しください。';}}
+function openEditorApp(){const app=EDITOR_APP_GUIDES[document.getElementById('editorAppChoice')?.value||'vllo'];if(app)window.open(app.url,'_blank','noopener');}
 function syncFinalUI(){
  syncThemeFlow();
  const score=Number(state.score||0);
