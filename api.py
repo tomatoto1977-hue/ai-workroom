@@ -364,10 +364,17 @@ def local_quality_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
         score=round(max_score*hits/len(groups))
         breakdown[name]=score
         evidence[name]=f"{hits}/{len(groups)}観点を確認（API未使用のローカル監査）"
-    total=sum(breakdown.values())
+    raw_total=sum(breakdown.values())
     # キーワード検出は意味内容を監査できないため、ローカル判定だけでは絶対にPASSさせない。
-    # フロントエンドはscore>=95を表示条件にするため、UIにも安全側の上限を返す。
-    return {"target":95,"max":100,"score":min(total,94),"raw_score":total,"passed":False,
+    # UIの合計点と内訳を一致させるため、ローカル内訳も94点を上限に比例縮小する。
+    score=min(raw_total,94)
+    if raw_total > score:
+        breakdown={k:round(v*score/raw_total) for k,v in breakdown.items()}
+        # 丸め誤差で合計が上限を超えないよう、最大項目から調整する。
+        while sum(breakdown.values()) > score:
+            key=max(breakdown,key=breakdown.get)
+            breakdown[key]-=1
+    return {"target":95,"max":100,"score":sum(breakdown.values()),"raw_score":raw_total,"passed":False,
             "breakdown":breakdown,"evidence":evidence,"auditor":"local_safety_fallback",
             "status":"REVIEW_REQUIRED",
             "reason":"ローカル監査はキーワード確認のみ。意味内容を検証できないため合格不可。実AI監査または人間による再確認が必要。"}
