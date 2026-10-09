@@ -60,28 +60,29 @@ def _video_card(path: Path, title: str, body: str, step: str):
     im.save(path)
 
 def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
-    # 「企画書の読み上げ」ではなく、短く自然な確認用ナレーションを作る。
+    # 企画書ではなく、実際に口に出す本文だけを抽出する。
     script = ""
     for item in results or []:
         if item.get("role") == "文章化AI":
             script = str(item.get("text") or "").strip()
             break
-    # シミュレーション時の定型台本は、そのまま読まず自然文に変換。
     if script:
-        script = re.sub(r"【[^】]+】", "", script)
-        script = re.sub(r"【[^】]*】", "", script)
-        script = re.sub(r"\[[^\]]+\]", "", script)
-        script = re.sub(r"\s+", " ", script).strip()
-    if not script or len(script) < 25:
-        topic = clean(instruction)
-        script = (
-            f"今回は、{topic}を短い動画にまとめます。"
-            "まず、根拠と権利関係を確認します。"
-            "次に、結論を先にして、具体例と今日できる行動に絞ります。"
-            "企画書をそのまま読むのではなく、耳で聞いて自然な言葉に整えます。"
-            "最後に、事実性と安全性を確認し、95点の品質ゲートを通して完成です。"
-            "公開や投稿は、人が確認してから行います。"
-        )
+        lines = []
+        for line in script.splitlines():
+            line = re.sub(r"^\\s*(?:【[^】]+】|\\[[^\\]]+\\]|\\d{1,2}[-〜～]\\d{1,2}秒[:：]?)\\s*", "", line).strip()
+            if not line or re.search(r"(画面|字幕|カット|BGM|映像|ナレーション案|構成案|企画書|CTA|フック)", line):
+                continue
+            lines.append(line)
+        script = re.sub(r"\\s+", " ", " ".join(lines)).strip()
+        if len(script) < 55 or re.match(r"^(テーマ|企画|目的|ターゲット|構成|結論|調査|リサーチ|STEP|今回の動画)", script, re.I) or "【" in script:
+            script = ""
+    if not script:
+        topic = clean(instruction).split("\\n", 1)[0].strip(" 。")
+        script = (f"ちょっと聞いてください。{topic}、なんとなくそのままにしていませんか？"
+                  "大切なのは、いきなり全部を変えることではありません。"
+                  "まずは今の状況をひとつ確認して、比べられる情報があれば条件をそろえて見てみましょう。"
+                  "数字や制度は時期によって変わるので、最後は公式の情報で確認してください。"
+                  "今日できる小さな見直しから始めてみませんか？")
     return script[:650]
 
 @app.post("/api/render_video")
