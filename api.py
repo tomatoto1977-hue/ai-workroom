@@ -580,7 +580,7 @@ def _generate_original_bgm(path: Path, duration_seconds: int = 28) -> None:
 
 
 def _research_card_text(results: list[dict[str, Any]]) -> str:
-    for item in results or []:
+    for item in reversed(results or []):
         if item.get("role") == "情報収集AI":
             body = str(item.get("text") or "").strip()
             if body: return body[:220]
@@ -854,6 +854,15 @@ async def orchestrate(req: RunRequest):
         {"stage": "統括", "roles": ["統括AI"]},
     ]
     results = parsed + [{"role": "統括AI", "status": "completed", "stage": "統括", "text": "各工程の結果を統合。95点品質ゲートを実施し、公開前は人間承認に進めます。"}]
+    if selected_theme:
+        source_titles = [str(x.get("title") or x.get("query") or x.get("type") or "") for x in selected_theme.get("sources", [])]
+        news_titles = [str(x.get("title") or "") for x in selected_theme.get("news", [])[:3]]
+        research_text = ("テーマ候補: " + str(selected_theme.get("raw_trend") or selected_theme.get("title") or "なし") +
+                         "\\n選出方式: " + str(selected_theme.get("engine") or "不明") +
+                         "\\n参照候補: " + (" / ".join(source_titles[:3]) if source_titles else "出典候補なし") +
+                         "\\n関連ニュース候補: " + (" / ".join(news_titles) if news_titles else "関連ニュース取得なし") +
+                         "\\n注意: トレンドやニュース見出しは需要シグナルであり、事実確認の代わりにはなりません。")
+        results.append({"role": "情報収集AI", "status": "completed" if source_titles or news_titles else "needs_review", "text": research_text})
     # オーケストレーション完了と同時に実MP4まで生成する。
     # フロントエンドから別リクエストを送らなくてよい構造にし、iPhone/Renderの再起動等で
     # 「制作開始のまま」「OPTIONSだけでPOSTが届かない」状態にならないようにする。
