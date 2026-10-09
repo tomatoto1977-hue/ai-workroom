@@ -54,7 +54,7 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 .result-card{padding:0;overflow:hidden}.result-head{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border-bottom:1px solid #eaded4}.result-head strong{font-size:12px}.result-badge{font-size:9px;font-weight:900;padding:5px 9px;border-radius:999px;background:#eef6ed;color:#557052}.video-preview{margin:10px;border-radius:13px;min-height:180px;background:#17151a;display:grid;place-items:center;color:#fff;text-align:center;border:1px solid #3b343d}.video-preview b{display:block;font-size:12px}.video-preview span{display:block;font-size:8px;color:#c9bec9;margin-top:5px}.result-actions{display:flex;gap:7px;padding:0 10px 10px}.result-actions button{flex:1;border:0;border-radius:12px;padding:9px;background:#8b6a57;color:#fff;font-size:10px;font-weight:900}.result-actions button.secondary{background:#eee5dd;color:#5e5048}
 .quality-total{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:12px;background:#faf4ee;margin-bottom:8px}.quality-total strong{font-size:23px}.quality-total span{font-size:9px;font-weight:900}.quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}.qrow{padding:7px 8px;border:1px solid #eadfd7;border-radius:10px}.qrow-top{display:flex;justify-content:space-between;font-size:8px;font-weight:800}.qbar{height:4px;background:#eadfd5;border-radius:5px;margin-top:5px;overflow:hidden}.qbar i{display:block;height:100%;width:0;background:#8b6a57}
 .agents-mini{display:grid;grid-template-columns:1fr 1fr;gap:6px}.agents-note{font-size:8px;color:#806f65;margin:4px 0 8px}.mini-agent{padding:8px;border:1px solid #e4d5ca;border-radius:11px;background:#fffaf5;min-width:0}.mini-agent b{font-size:8px}.mini-agent small{display:block;font-size:7px;color:#7d6c63;margin-top:2px;line-height:1.35}.mini-agent:last-child{grid-column:1/-1}
-.revision-panel.final-revision{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;padding:12px;background:#fffaf5}.revision-panel.final-revision h3{font-size:12px}.revision-panel.final-revision p{font-size:8px}.revision-panel.final-revision textarea{min-height:64px;font-size:11px}.revision-panel.final-revision .revision-actions button{background:#7654d9}.final-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;font-size:8px;color:#806f65}.final-footer b{color:#557052}
+.revision-panel.final-revision{position:relative;left:auto;right:auto;bottom:auto;z-index:auto;padding:12px;background:#fffaf5}.revision-panel.final-revision h3{font-size:12px}.revision-panel.final-revision p{font-size:8px}.revision-panel.final-revision textarea{min-height:64px;font-size:11px}.revision-panel.final-revision .revision-actions button{background:#7654d9}.memory-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.memory-actions button,.memory-file{border:1px solid #c99f7d;border-radius:12px;padding:8px 11px;background:#fff7ef;color:#5b4638;font-weight:800;font-size:12px;cursor:pointer}.memory-file input{display:none}#memorySummary{font-weight:800;color:#6b5143}.final-footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;font-size:8px;color:#806f65}.final-footer b{color:#557052}
 .final-ui .revision-panel{display:block!important}
 @media(max-width:700px){
  .shell{padding:0;background:#f3e7da;overflow:auto}.artboard{width:100%;height:auto;min-height:100dvh;aspect-ratio:auto;border-radius:0;overflow:visible;box-shadow:none;background:#f3e7da}
@@ -179,6 +179,16 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
     <h2>▸ 詳細ログ・技術情報</h2>
     <p id="finalDetail">必要なときだけ確認できます。自動投稿・外部操作・金銭操作は行いません。</p>
   </section>
+  <section class="final-card detail-card" id="memoryCard">
+    <h2>🧠 継続記憶・Obsidian</h2>
+    <p>この端末に学習メモを保存し、次回の実行前に関連メモを読み込みます。MarkdownでObsidianと往復できます。未確認のAI生成内容は事実として扱いません。</p>
+    <p id="memorySummary">継続記憶を確認中…</p>
+    <div class="memory-actions">
+      <button type="button" onclick="exportObsidianMemory()">Markdownを書き出す</button>
+      <label class="memory-file">Obsidianから読み込む<input id="memoryImportFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
+      <button type="button" onclick="saveCurrentRule()">今回の指示を学習ルールとして保存</button>
+    </div>
+  </section>
   <div class="final-footer"><span>安全ゲート：<b>人間承認必須</b>　公開・投稿OFF</span><span id="finalProject">プロジェクト：—</span></div>
 </section>
 <div class="panel project"><strong id="projectTitle">現在のプロジェクト：節約・家計ショート動画</strong><span id="overall">工程 45%</span></div>
@@ -214,6 +224,54 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 </main></div>
 <script>
 const API_URL='https://ai-workroom-api.onrender.com';
+const MEMORY_KEY='aiworkroom_learning_memory_v1';
+function readMemories(){
+ try{const x=JSON.parse(localStorage.getItem(MEMORY_KEY)||'[]');return Array.isArray(x)?x.filter(m=>m&&typeof m.content==='string').slice(-100):[];}
+ catch(e){return [];}
+}
+function saveMemoryEntry(entry){
+ const list=readMemories();const content=String(entry.content||'').trim().slice(0,3000);if(!content)return false;
+ const title=String(entry.title||'学習メモ').trim().slice(0,180);
+ const norm=v=>String(v||'').toLowerCase().replace(/[\s、。,.！!？?「」『』【】]/g,'').slice(0,220);
+ const duplicate=list.find(m=>norm(m.title)===norm(title)&&norm(m.content)===norm(content));
+ if(duplicate)return false;
+ list.push({id:entry.id||('mem-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)),title,kind:entry.kind||'run',created_at:entry.created_at||new Date().toISOString(),status:entry.status||'unverified',source_url:String(entry.source_url||'').slice(0,800),tags:Array.isArray(entry.tags)?entry.tags.slice(0,12):[],content});
+ try{localStorage.setItem(MEMORY_KEY,JSON.stringify(list.slice(-100)));renderMemoryStatus();return true;}catch(e){showToast('記憶保存に失敗しました。端末の保存容量を確認してください');return false;}
+}
+function renderMemoryStatus(){
+ const list=readMemories();const el=document.getElementById('memorySummary');
+ if(el)el.textContent='保存済み '+list.length+'件 ／ ルール '+list.filter(m=>m.kind==='rule').length+'件 ／ 調査・実行記録 '+list.filter(m=>m.kind!=='rule').length+'件。保存先：このブラウザ（Obsidian同期はMarkdown経由）';
+}
+function memoryTokens(s){return (String(s||'').toLowerCase().match(/[一-龥ぁ-んァ-ヶa-z0-9]{2,}/g)||[]).slice(0,80);}
+function buildMemoryContext(instruction){
+ const list=readMemories();const tokens=memoryTokens(instruction);
+ const ranked=list.map((m,i)=>{const body=m.title+' '+m.content+' '+(m.tags||[]).join(' ');const mt=memoryTokens(body);const overlap=tokens.filter(t=>mt.includes(t)).length;return {m,i,score:(m.kind==='rule'?100:0)+overlap*5+(m.kind==='research'?3:0)+i/1000};});
+ ranked.sort((a,b)=>b.score-a.score);
+ const selected=[...ranked.filter(x=>x.m.kind==='rule'),...ranked.filter(x=>x.m.kind!=='rule'&&x.score>0)].filter((x,i,a)=>a.findIndex(y=>y.m.id===x.m.id)===i).slice(0,5);
+ let out='';for(const x of selected){const m=x.m;const part='['+m.kind+' / '+m.status+' / '+m.created_at+'] '+m.title+'\n'+m.content.slice(0,350)+(m.source_url?'\n出典URL: '+m.source_url:'')+'\n\n';if((out+part).length>1400)continue;out+=part;}
+ return {text:out.trim(),count:selected.length,ids:selected.map(x=>x.m.id)};
+}
+function recordRunMemory(data,instruction){
+ const gate=data&&data.gate||{};const theme=data&&data.selected_theme;
+ if(theme){const src=(theme.sources||[]).map(x=>(x.type||'出典')+': '+(x.title||x.query||'')+(x.url?' '+x.url:'')).join('\n');
+ saveMemoryEntry({kind:'research',title:'調査テーマ：'+(theme.title||instruction),status:'unverified',source_url:(theme.sources||[]).find(x=>x.url)?.url||'',tags:['research','theme'],content:'AI作業室が選定したテーマ。これは需要の確定や事実の証明ではありません。\nテーマ：'+(theme.title||instruction)+'\n生トレンド：'+(theme.raw_trend||'なし')+'\nスコア：'+(theme.score??'不明')+'\n選出日時：'+(theme.selected_at||new Date().toISOString())+'\n出典・検索情報：\n'+(src||'出典情報なし')+'\nニュース件数：'+((theme.news||[]).length)+'。原資料を再確認してから利用すること。'});}
+ const snippets=(data&&Array.isArray(data.results)?data.results:[]).filter(x=>x&&x.text&&['文章化AI','エビデンスAI','市場調査AI','統括AI'].includes(x.role)).map(x=>'【'+x.role+'】 '+String(x.text).replace(/\s+/g,' ').slice(0,420)).join('\n');
+ saveMemoryEntry({kind:'run',title:'実行記録：'+String(theme&&theme.title||instruction).slice(0,120),status:gate.passed?'ai_audit_passed_human_review_still_required':'review_required',tags:['execution',gate.passed?'audit-pass':'review'],content:'これはAI作業室の生成・監査記録であり、独立検証済みの事実ではありません。\n依頼テーマ：'+instruction+'\n実行モード：'+(data.mode||'unknown')+'\n品質点：'+(gate.score??'不明')+'/100、AI監査合格：'+(gate.passed===true?'はい（人間確認は別途必須）':'いいえ／未確認')+'\n改善回数：'+(gate.improvement_rounds??0)+'\n記憶コンテキスト読込：'+(data.memory_context_loaded?'あり':'なし')+'\n担当メモ：\n'+(snippets||'担当メモなし')});
+}
+function saveCurrentRule(){
+ const input=document.getElementById('instruction');const text=String(state.instruction||input?.value||'').trim();
+ if(!text){showToast('保存する指示がありません');return;}
+ const ok=saveMemoryEntry({kind:'rule',title:'ユーザー指定ルール：'+text.slice(0,80),status:'user_confirmed',tags:['rule','user-confirmed'],content:text});
+ showToast(ok?'学習ルールとして保存しました':'同じ内容が既に保存されています');
+}
+function exportObsidianMemory(){
+ const list=readMemories();let md='# AI作業室 継続記憶\n\n更新日時：'+new Date().toISOString()+'\n\nこのファイルはAI作業室の学習メモです。未確認情報は事実として扱わず、公開前に人間が確認してください。\n\n';
+ for(const m of list){md+='<!-- AIW_MEMORY_BEGIN -->\n## '+m.title.replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n\n';}
+ const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AI作業室_継続記憶.md';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Obsidian用Markdownを書き出しました');
+}
+async function importObsidianMemory(file){
+ if(!file)return;try{const md=await file.text();const blocks=[...md.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];let added=0;
+ for(const match of blocks){const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>((b.match(new RegExp('^- '+k+':\\s*(.*)
 const roles=[
  ['調査AI','市場データ・根拠を収集'],['企画AI','競争戦略を反映して企画'],['台本AI','視聴者向けに文章化'],['チェックAI','事実・表現・品質を確認'],['編集AI','動画構成・編集を仕上げ']
 ];
@@ -693,6 +751,543 @@ async function prepareMusicBeforeRender(){
 document.querySelectorAll('input[name="musicProvider"]').forEach(e=>e.addEventListener('change',updateMusicUI));
 document.getElementById('musicGenre')?.addEventListener('change',()=>{state.musicGenre=document.getElementById('musicGenre').value;});
 document.getElementById('musicFile')?.addEventListener('change',()=>{updateMusicUI();});
+function playNarration(){
+ const text=(state.narrationText||'').trim();
+ if(!text){showToast('ナレーション原稿がまだありません');return;}
+ if(!('speechSynthesis' in window)){showToast('このiPhoneでは読み上げ機能を利用できません');return;}
+ window.speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang='ja-JP'; u.rate=1.02; u.pitch=1.0; u.volume=1.0;
+ u.onstart=()=>{document.getElementById('resultBadge').textContent='ナレーション再生中';};
+ u.onend=()=>{document.getElementById('resultBadge').textContent='MP4完成・確認待ち';};
+ window.speechSynthesis.speak(u);
+ log('ナレーション：iPhoneの日本語音声で確認再生');
+}
+function syncFinalUI(){
+ syncThemeFlow();
+ const score=Number(state.score||0);
+ const passed=state.auditPassed===true && score>=95;
+ const el=id=>document.getElementById(id);
+ if(el('finalScore')) el('finalScore').textContent=score;
+ if(el('finalGate')) el('finalGate').textContent=passed?'95点合格':'改善・再点検が必要';
+ if(el('nextScore')) el('nextScore').textContent=passed?'品質 '+score+'点':'品質 '+score+'点';
+ if(el('nextAction') && !workflowRunning && !state.artifact) el('nextAction').textContent='初回動画を作る';
+ if(el('previewText') && state.artifact && !state.videoReady) el('previewText').textContent='MP4を生成しています…';
+ if(el('finalStatus')) el('finalStatus').textContent=workflowRunning?'● 編集・監査中':(passed?'● 完成・確認待ち':'● 改善・再点検');
+ if(el('resultBadge')) el('resultBadge').textContent=passed?'95点ゲート PASS':'改善中';
+ if(el('previewText')) el('previewText').textContent=state.artifact?'現在の成果物を元にブラッシュアップ可能':'成果物を生成すると、ここから確認できます';
+ if(el('finalProject')) el('finalProject').textContent='プロジェクト：'+((state.instruction||'未設定').replace(/\s+/g,' ').slice(0,24));
+ const map={qFact:25,qPurpose:20,qSpecific:20,qMessage:15,qImplement:10,qSafety:10};
+ const b=state.qualityBreakdown||{};
+ const names={qFact:'事実性',qPurpose:'目的適合',qSpecific:'具体性',qMessage:'伝達性',qImplement:'実装可能性',qSafety:'安全性'};
+ Object.keys(map).forEach(k=>{const e=el(k);if(e){const v=Number(b[names[k]]??(score*map[k]/100));e.style.width=Math.max(0,Math.min(100,v/map[k]*100))+'%';}});
+}
+function reviseFromFinal(){
+ const a=document.getElementById('changeRequestFinal');
+ const old=document.getElementById('changeRequest');
+ if(old) old.value=a.value;
+ reviseFromRequest();
+ const timer=setInterval(()=>{
+   const s=document.getElementById('revisionStatus');
+   const rf=document.getElementById('revisionStatusFinal');
+   const rr=document.getElementById('revisionRound');
+   const rrf=document.getElementById('revisionRoundFinal');
+   if(s&&rf)rf.textContent=s.textContent;
+   if(rr&&rrf)rrf.textContent=rr.textContent;
+   syncFinalUI();
+   if(!workflowRunning){clearInterval(timer);}
+ },200);
+}
+</script></body></html>,'m'))||[])[1]||'').trim();const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();if(!content)continue;const ok=saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});if(ok)added++;}
+ if(!blocks.length){const title=file.name.replace(/\.md$/i,'');if(saveMemoryEntry({kind:'imported',title,status:'unverified',tags:['obsidian-import'],content:md.slice(0,3000)}))added++;}
+ renderMemoryStatus();showToast('Markdown読込完了：新規 '+added+'件');log('継続記憶：Obsidian Markdownから'+added+'件を読込');}catch(e){showToast('Markdown読込に失敗しました');}
+}
+
+const roles=[
+ ['調査AI','市場データ・根拠を収集'],['企画AI','競争戦略を反映して企画'],['台本AI','視聴者向けに文章化'],['チェックAI','事実・表現・品質を確認'],['編集AI','動画構成・編集を仕上げ']
+];
+const positions=[
+ {x:9,y:31},{x:28,y:31},{x:45,y:37},{x:64,y:31},{x:79,y:37}
+];
+let paused=false,timer=null,logs=[],apiDriven=false,workflowRunning=false,apiOnline=false,apiConfigured=false;
+const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
+ score:82,quality:[82,82,82,82,82],progress:[70,45,60,30,20],
+ phases:['working','thinking','working','waiting','working'],
+ delivered:[false,false,false,false,false],
+ instruction:'節約・家計ショート動画',
+ artifact:'',
+ revisionRound:0,
+ videoUrl:'',
+ videoReady:false,
+ musicProvider:'ace_step_local',
+ musicGenre:'rock',
+ musicAudioBase64:'',
+ musicFilename:'',
+ musicPrompt:''
+};
+state.auditPassed = state.auditPassed === true && Number(state.score) >= 95;
+if(state.auditPassed !== true && Number(state.score) >= 95) state.score = 94;
+const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
+const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
+function renderAgents(){
+ document.querySelectorAll('#agents .agent').forEach((d,i)=>{
+   if(!roles[i]) return;
+   d.className='panel agent '+(state.phases[i]==='working'?'active ':'')+(state.phases[i]==='waiting'?'waiting ':'')+(state.phases[i]==='done'?'done':'');
+   d.classList.toggle('waiting',state.phases[i]==='waiting');d.classList.toggle('done',state.phases[i]==='done');d.querySelector('.score').textContent=state.progress[i]+'%';
+   d.querySelector('small').textContent=phaseText[state.phases[i]]+' '+roles[i][1];
+   d.querySelector('.bar i').style.width=state.progress[i]+'%';
+ });
+}
+function log(msg){logs.unshift(new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+'　'+msg);logs=logs.slice(0,9);document.getElementById('log').innerHTML=logs.map(x=>'<div>'+x+'</div>').join('');}
+function render(){
+ renderAgents();
+ const avg=Math.round(state.progress.reduce((a,b)=>a+b,0)/5);
+ document.getElementById('overall').textContent='工程 '+avg+'%';
+ const gs=document.getElementById('gateStatus'); if(gs) gs.textContent=(state.auditPassed===true && state.score>=95)?'95点合格：次工程へ':'改善・再点検が必要';
+ document.getElementById('quality').textContent='品質 '+state.score+'点';
+ document.getElementById('gateScore').textContent=state.score+'点';
+ localStorage.setItem('aiworkroom_state',JSON.stringify(state));
+ syncFinalUI();
+}
+function moveWalker(from,to){
+ const layer=document.getElementById('handoffLayer');
+ const w=document.createElement('div'); w.className='walker'; w.innerHTML='<i></i><b></b>';
+ w.style.left=positions[from].x+'%'; w.style.top=(positions[from].y+5)+'%'; layer.appendChild(w);
+ requestAnimationFrame(()=>{w.style.opacity='1'; requestAnimationFrame(()=>{w.style.left=positions[to].x+'%'; w.style.top=(positions[to].y+5)+'%';});});
+ setTimeout(()=>{w.style.opacity='1'; w.style.left=positions[from].x+'%'; w.style.top=(positions[from].y+5)+'%';},1350);
+ setTimeout(()=>w.remove(),2700);
+}
+function moveDocument(from,to,label){
+ moveWalker(from,to);
+ const layer=document.getElementById('handoffLayer'),d=document.createElement('div');d.className='doc';d.textContent='📄';d.style.left=positions[from].x+'%';d.style.top=positions[from].y+'%';layer.appendChild(d);
+ requestAnimationFrame(()=>{d.style.left=positions[to].x+'%';d.style.top=positions[to].y+'%';});
+ setTimeout(()=>d.remove(),1400);
+ log(roles[from][0]+' → '+roles[to][0]+'：'+label);
+}
+function tick(){
+ if(paused || apiDriven)return;
+ roles.forEach((r,i)=>{
+   if(state.phases[i]==='waiting'){
+     if(i===0 || state.delivered[i-1]) state.phases[i]='working';
+   } else if(state.phases[i]==='thinking'){
+     if(Math.random()<.38) state.phases[i]='working';
+   } else if(state.phases[i]==='working'){
+     state.progress[i]=Math.min(100,state.progress[i]+(i===0?2:1+Math.floor(Math.random()*3)));
+     if(Math.random()<.13) state.phases[i]='thinking';
+     if(state.progress[i]>=100){
+       if((state.quality?.[i]??state.score)<95){state.progress[i]=80;state.phases[i]='thinking';log(roles[i][0]+'：品質ゲート未達。改善ラウンドを開始');}
+       else {state.phases[i]='done';if(i<4){state.delivered[i]=true;moveDocument(i,i+1,'資料を持って席を立ち、引き渡し');state.phases[i+1]='waiting';}else log('編集AI：最終成果物を統括AIへ返却');}
+     }
+   }
+ });
+ if(Math.random()<.18) log(roles[Math.floor(Math.random()*5)][0]+'：'+phaseLog[state.phases[Math.floor(Math.random()*5)]]);
+ if(!state.quality)state.quality=[82,82,82,82,82];
+ if(Math.random()<.12){const q=Math.floor(Math.random()*5);if(state.quality[q]<94)state.quality[q]++;}
+ if(state.auditPassed===true){state.score=Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length);}
+ else {state.score=Math.min(94,Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length));}
+ render();
+}
+async function playWorkflow(data){
+ state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
+ apiDriven=true; workflowRunning=true;
+ if(timer){clearInterval(timer);timer=null;}
+ const groups=[
+   {stage:'調査',cards:[0],roles:['市場調査AI','競争戦略AI','情報収集AI','予算AI']},
+   {stage:'企画',cards:[1],roles:['企画AI']},
+   {stage:'制作',cards:[2,4],roles:['文章化AI','動画制作AI']},
+   {stage:'品質確認',cards:[3,4],roles:['エビデンスAI','編集AI']},
+   {stage:'実装',cards:[4],roles:['実装AI']},
+   {stage:'統括',cards:[],roles:['統括AI']}
+ ];
+ const results=data.results||[];
+ for(const g of groups){
+   if(paused){await new Promise(r=>setTimeout(r,500));continue;}
+   g.cards.forEach(i=>{state.phases[i]='working';state.progress[i]=Math.max(state.progress[i],20);});
+   log(g.stage+'工程：'+g.roles.join('・')+' が受領して作業開始');
+   render();
+   await new Promise(r=>setTimeout(r,900));
+   const passed=!!data.gate?.passed;
+   g.cards.forEach(i=>{state.progress[i]=passed?100:Math.min(94,Math.max(state.progress[i],94));state.phases[i]=passed?'done':'thinking';});
+   const matching=results.filter(x=>g.roles.includes(x.role));
+   matching.forEach(x=>{if(x.status==='completed')log(x.role+'：成果を完了し次工程へ引き渡し');});
+   const rechecks=results.filter(x=>x.stage==='改善・再点検');
+   rechecks.forEach(x=>log(x.role+'：95点基準の改善・再点検を実施'));
+   for(let j=0;j<g.cards.length-1;j++) moveDocument(g.cards[j],g.cards[j+1],g.stage+'工程の成果を引き渡し');
+   if(g.cards.length===2 && !passed) state.phases[g.cards[1]]='waiting';
+   render();
+   await new Promise(r=>setTimeout(r,500));
+ }
+ workflowRunning=false; apiDriven=false;
+ state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
+ state.score = state.auditPassed ? Math.min(100, Number(data.gate.score)) : Math.min(94, typeof data.gate?.score==='number' ? data.gate.score : state.score);
+ state.quality=state.quality.map(()=>state.score);
+ document.getElementById('managerTask').textContent=data.gate?.passed?'品質95点合格：最終成果を統括AIへ':'工程完了：品質'+state.score+'点。改善・再点検が必要';
+ log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
+ render();
+ start();
+}
+function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
+async function startFirstVideo(){
+ const btn=document.getElementById('firstVideoButton');
+ const next=document.getElementById('nextAction');
+ const status=document.getElementById('finalStatus');
+ const rev=document.getElementById('revisionStatus');
+ if(workflowRunning){
+   if(rev) rev.textContent='現在の制作工程が進行中です。完了までお待ちください。';
+   return;
+ }
+ const instruction=(state.instruction&&state.instruction!=='節約・家計ショート動画')
+   ? state.instruction
+   : '毎日の情報収集から視聴者に役立つテーマを選び、著作権・特定人物への依存を避けたショート動画を初回制作する。テーマ選出→リサーチ→企画→制作→品質確認まで実行する。';
+ const input=document.getElementById('instruction');
+ if(input) input.value=instruction;
+ if(btn){btn.disabled=true;btn.textContent='制作開始…';}
+ if(next) next.textContent='制作リクエストを送信しています…';
+ if(status) status.textContent='● API接続・制作リクエスト中';
+ log('統括AI：初回動画ボタンを検知。APIへ接続します');
+ try{
+   await send();
+ }catch(e){
+   const msg=String(e&&e.message||e).slice(0,120);
+   if(next) next.textContent='制作開始に失敗：'+msg;
+   if(status) status.textContent='● 接続エラー（詳細ログを確認）';
+   if(rev) rev.textContent='制作開始に失敗しました。画面を閉じずに再度お試しください。詳細：'+msg;
+   log('初回動画ボタン：送信前にエラー '+msg);
+ }finally{
+   if(btn){btn.disabled=false;btn.textContent='初回動画を作る';}
+   try{syncFinalUI();}catch(e){log('画面更新エラー：'+String(e&&e.message||e).slice(0,80));}
+ }
+}
+function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
+function newProject(){state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
+async function send(){
+ state.auditPassed=false;
+ if(Number(state.score)>=95) state.score=94;
+ state.quality=state.quality.map(()=>Math.min(94,Number(state.score)||0));
+ await prepareMusicBeforeRender();
+const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
+ state.instruction=x.value.trim();
+ const projectLabel=state.instruction.replace(/\s+/g,' ').trim();
+ document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(projectLabel.length>34?projectLabel.slice(0,34)+'…':projectLabel);
+ document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
+ log('統括AI：ユーザー指示を受領 → 各担当へ分担');
+ roles.forEach((r,i)=>{if(state.phases[i]==='done')state.progress[i]=Math.min(state.progress[i],95); if(i===0)state.phases[i]='working'; else if(state.phases[i]!=='working')state.phases[i]=i===1?'thinking':'waiting';});
+ log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
+ x.value='';start();render();
+ try{
+   const memory=buildMemoryContext(state.instruction);
+   const params=new URLSearchParams({instruction:state.instruction,project:'AI作業室',max_output_tokens:'700',memory_context:memory.text});
+   if(memory.count)log('継続記憶：関連メモ '+memory.count+'件を実行前に読込');else log('継続記憶：関連メモなし。標準安全ルールで開始');
+   let r=null, data=null, lastError=null;
+   for(let attempt=0;attempt<2;attempt++){
+     try{
+       r=await fetch(API_URL+'/api/orchestrate_get?'+params.toString(),{method:'GET',cache:'no-store',headers:{'Accept':'application/json'}});
+       if(!r.ok) throw new Error('HTTP '+r.status);
+       data=await r.json();
+       break;
+     }catch(e){
+       lastError=e;
+       if(attempt===0) await new Promise(resolve=>setTimeout(resolve,1800));
+     }
+   }
+   if(!data) throw lastError||new Error('API response unavailable');
+   recordRunMemory(data,state.instruction);
+   if(data.memory_context_loaded)log('統括AI：継続記憶 '+data.memory_context_chars+'文字を制作・監査に引き継ぎ');
+   if(data.selected_theme){
+     state.instruction=data.selected_theme.title||state.instruction;
+     document.getElementById('projectTitle').textContent='現在のプロジェクト：'+state.instruction.slice(0,34)+(state.instruction.length>34?'…':'');
+     log('統括AI：ライブテーマ選出 → 「'+state.instruction+'」 / スコア '+(data.selected_theme.score||0));
+     log('テーマ根拠：'+(data.selected_theme.raw_trend||'ライブトレンド')+' / '+(data.selected_theme.engine||'テーマエンジン'));
+     if(data.selected_theme.youtube_research_enabled) log('市場調査AI：YouTube短尺動画の人気シグナルも確認');
+     else log('市場調査AI：Google Trends + Google Newsで最新需要を確認（動画APIは未接続）');
+   }
+   if(data.workflow){
+     data.workflow.forEach(w=>log(w.stage+'工程：'+w.roles.join('・')+' が担当'));
+   }
+   if(data.mode==='openai'){
+     log('統括AI：実AI処理が完了。各担当の成果を受領');
+     await playWorkflow(data);
+     data.results.forEach(item=>{
+       if(item.status==='completed'){
+         const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);
+         log(item.role+'：成果を次工程へ引き渡し'+(summary?'「'+summary+'」':''));
+       } else if(item.status==='error'){
+         log(item.role+'：エラーを検知。改善待ち');
+       }
+     });
+     state.artifact=data.results.map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
+     await renderCompletedVideo(data);
+     state.revisionRound=0;
+     document.getElementById('revisionRound').textContent='ブラッシュアップ 0回';
+     document.getElementById('revisionStatus').textContent=data.gate?.passed?'完成成果物を確認済み。変更要望で何度でも編集できます':'完成成果物は改善・再点検中。変更要望で追加編集できます';
+     const manager=data.results.find(item=>item.role==='統括AI');
+     const roleMap={'市場調査AI':0,'企画AI':1,'文章化AI':2,'エビデンスAI':3,'編集AI':4};
+     data.results.forEach(item=>{
+       const i=roleMap[item.role];
+       if(i===undefined)return;
+       if(item.status==='completed'){
+         state.progress[i]=100;
+         state.phases[i]='done';
+         state.delivered[i]=false;
+         if(i<4){
+           state.delivered[i]=true;
+           state.phases[i+1]='waiting';
+           moveDocument(i,i+1,'API成果を受領して引き渡し');
+         }
+       }
+     });
+     document.getElementById('managerTask').textContent=manager&&manager.text?'実AI処理完了：'+manager.text.replace(/\s+/g,' ').slice(0,90):'実AI処理完了：成果を確認・統合中';
+     if(data.gate&&data.gate.passed){
+       state.score=typeof data.gate.score==='number'?data.gate.score:95;
+       state.qualityBreakdown=data.gate.breakdown||{};
+       log('統括AI：品質ゲート95点条件を確認');
+     }else{
+       state.score=typeof data.gate?.score==='number'?data.gate.score:Math.min(state.score,94);
+       state.qualityBreakdown=data.gate?.breakdown||{};
+       log('統括AI：品質ゲート95点は未達。改善工程を継続');
+     }
+     render();
+   }else{
+     log('AI API：現在はシミュレーションモード。実AIの品質判定はAPIキー設定後に実行');
+     document.getElementById('managerTask').textContent='指示を受領。安全なシミュレーション工程を開始します';
+     await playWorkflow(data);
+     // APIキー未接続の安全なシミュレーションでも、成果物とMP4プレビューを生成する。
+     // 「実AI判定」と「動画レンダリング」を分離し、プレビューだけが空になる状態を防ぐ。
+     state.artifact=(data.results||[]).map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
+     await renderCompletedVideo(data);
+     document.getElementById('managerTask').textContent='シミュレーション工程完了。MP4プレビューを生成しました。品質'+state.score+'点（実AI判定はAPIキー設定後）';
+     state.score=Math.min(94,Math.max(state.score,82));
+     state.qualityBreakdown=data.gate?.breakdown||{};
+     state.quality=state.quality.map(()=>state.score);
+     render();
+   }
+ }catch(e){const msg=String(e&&e.message||e).slice(0,80);log('AI API：接続エラー → '+msg);document.getElementById('managerTask').textContent='動画制作APIへの接続に失敗しました。再読み込み後にもう一度お試しください';document.getElementById('nextAction').textContent='API接続を再確認してください';}
+ finally{const b=document.querySelector('#instructionForm button');if(b){b.disabled=false;b.textContent='送信';}}
+}
+async function reviseFromRequest(){
+ const input=document.getElementById('changeRequest');
+ const btn=document.getElementById('reviseButton');
+ const request=(input.value||'').trim();
+ if(!request){input.focus();document.getElementById('revisionStatus').textContent='変更したい内容を入力してください';return;}
+ if(workflowRunning){document.getElementById('revisionStatus').textContent='現在の編集工程が進行中です。完了後に再度変更できます';return;}
+ const current=state.artifact||'現在の成果物情報はまだありません。現在のプロジェクト指示を基準に編集してください。';
+ state.auditPassed=false;
+ if(Number(state.score)>=95) state.score=94;
+ state.quality=state.quality.map(()=>Math.min(94,Number(state.score)||0));
+ btn.disabled=true;btn.textContent='編集・再監査中…';workflowRunning=true;apiDriven=true;
+ document.getElementById('revisionStatus').textContent='現在の成果物を読み込み、変更要望に沿って編集しています';
+ log('編集AI：変更要望を受領 → 現在の成果物を基準にブラッシュアップ開始');
+ try{
+   const r=await fetch(API_URL+'/api/revise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instruction:state.instruction||'現在のプロジェクト',change_request:request,current_artifact:current,max_output_tokens:900})});
+   const data=await r.json();
+   if(!data.ok) throw new Error(data.error||'revision failed');
+   if(data.revised_artifact) state.artifact=data.revised_artifact;
+   // 初回と再編集の両方で、同じMP4取り込み・Blob再生経路を使う。
+   if(data.video?.video_url){
+     await renderCompletedVideo({video:data.video,results:data.results||[]});
+     log('動画制作AI：再編集MP4をBlob方式で取り込み');
+   }
+   state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
+   state.score = state.auditPassed ? Math.min(100, Number(data.gate.score)) : Math.min(94, typeof data.gate?.score==='number' ? data.gate.score : state.score);
+   state.quality=state.quality.map(()=>state.score);
+   state.progress=[100,100,100,100,100];
+   state.phases=['done','done','done','done','done'];
+   document.getElementById('revisionRound').textContent='ブラッシュアップ '+state.revisionRound+'回';
+   document.getElementById('revisionStatus').textContent=data.video?.change_request_applied
+     ? (data.gate?.passed?'編集完了・変更内容をMP4へ反映。95点ゲート合格':'編集完了・変更内容をMP4へ反映。品質'+state.score+'点')
+     : (data.gate?.passed?'編集完了・95点ゲート合格。さらに変更できます':'編集完了・品質'+state.score+'点。改善して再編集できます');
+   document.getElementById('managerTask').textContent=data.gate?.passed?'変更要望を反映し、品質95点合格':'変更要望を反映しました。品質'+state.score+'点';
+   log('編集AI：変更要望を反映。品質'+state.score+'点で再監査');
+   if(data.gate?.improvement_rounds) log('統括AI：自動改善ラウンド '+data.gate.improvement_rounds+'回を実施');
+   input.value='';
+   render();
+ }catch(e){
+   document.getElementById('revisionStatus').textContent='編集処理に接続できませんでした。もう一度お試しください';
+   log('編集AI：接続または編集処理でエラー。成果物は変更していません');
+ }finally{
+   workflowRunning=false;apiDriven=false;btn.disabled=false;btn.textContent='変更要望に沿って編集';start();
+ }
+}
+async function checkApi(){
+ const setConnected=(d)=>{
+  apiOnline=!!d.ok; apiConfigured=!!d.openai_configured;
+  if(apiOnline&&apiConfigured){
+   document.getElementById('status').textContent='● LIVE　実AI接続済み・統括AIが全工程を管理';
+   log('AI API：接続済み。実AIモードで稼働可能（'+(d.model||'モデル')+'）');
+  }else if(apiOnline){
+   document.getElementById('status').textContent='● LIVE　安全なシミュレーション中（実AI APIキー待ち）';
+   log('AI API：サーバー接続済み。サーバーは接続済みです');
+  }
+ };
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   const r=await fetch(API_URL+'/health?ts='+Date.now(),{cache:'no-store'});
+   if(!r.ok) throw new Error('HTTP '+r.status);
+   const d=await r.json();
+   setConnected(d);
+   return;
+  }catch(e){
+   await new Promise(resolve=>setTimeout(resolve,Math.min(2500,700*(attempt+1))));
+  }
+ }
+ // APIがスリープ中でも「初回動画を作る」操作を止めない。
+ // 次の制作リクエストでRenderが起動するため、誤って「接続不能」と表示しない。
+ apiOnline=false; apiConfigured=false;
+ document.getElementById('status').textContent='● LIVE　API起動確認中（制作開始で自動再接続）';
+ log('AI API：初回確認はタイムアウト。制作開始時に自動再接続します');
+}
+function showToast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(state.instruction||'節約・家計ショート動画').replace(/\s+/g,' ').trim().slice(0,34)+(state.instruction&&state.instruction.replace(/\s+/g,' ').trim().length>34?'…':'');
+render();start();checkApi();
+// iPhone/Safariで古いPWAキャッシュが残ると、更新済みAPI呼び出しが実行されないことがあるため、動画確認画面ではService Workerを使用しない。
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{});
+  if(window.caches) caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});
+}
+window.__AI_WORKROOM_BUILD='20261009-video-e2e-diagnostic-2';</script>
+<script>
+function syncThemeFlow(){
+ const steps=document.querySelectorAll('#themeFlow .flow-step');
+ if(!steps.length)return;
+ const p=state.progress||[];
+ const avg=p.reduce((a,b)=>a+b,0)/Math.max(1,p.length);
+ const idx=avg<15?0:avg<32?1:avg<50?2:avg<72?3:avg<95?4:5;
+ steps.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx || (i===5 && state.auditPassed===true && state.score>=95));});
+}
+async function renderCompletedVideo(data){
+ const v=document.getElementById('completedVideo'), empty=document.getElementById('videoEmpty');
+ if(!v)return;
+ try{
+   document.getElementById('previewText').textContent='MP4をレンダリング中…';
+   // /api/orchestrate が新しいMP4を返す場合は、その結果をそのまま使用する。
+   // 旧APIとの互換性のため、videoが無い場合だけ従来のrender_videoを呼ぶ。
+   const needsAudioRerender=state.musicProvider==='imported_audio' && !!state.musicAudioBase64;
+   let x=(data.video && !needsAudioRerender) ? {ok:true,...data.video} : null;
+   if(!x){
+     const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+       instruction:state.instruction,results:data.results||[],music_provider:state.musicProvider,
+       music_audio_base64:state.musicAudioBase64,music_filename:state.musicFilename,music_genre:state.musicGenre
+     })});
+     x=await r.json();
+   }
+   if(!x.ok)throw new Error(x.error||'render failed');
+   const videoUrl=API_URL+x.video_url+'?t='+Date.now();
+   // Renderの一時ファイルは再起動/スピンダウンで消えるため、完成直後にiPhone側へBlobとして取り込む。
+   // これにより、同じ画面を開いている間はRenderのファイル寿命に依存せず再生できる。
+   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
+   v.onplay=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='none';};
+   v.onerror=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='block';};
+   if(x.poster_url){
+     const posterUrl=API_URL+x.poster_url+'?t='+Date.now();
+     v.poster=posterUrl;
+     const poster=document.getElementById('videoPosterFallback');
+     if(poster){poster.src=posterUrl;poster.style.display='block';}
+   }
+   v.style.display='block'; if(empty)empty.style.display='none';
+   document.getElementById('previewText').textContent='完成動画をiPhoneへ読み込んでいます…';
+   try{
+     let blob=null;
+     if(x.video_base64){
+       // API応答に同梱されたMP4本体を直接Blob化。Renderの一時ファイル再取得に依存しない。
+       const bin=atob(x.video_base64);
+       const bytes=new Uint8Array(bin.length);
+       for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+       blob=new Blob([bytes],{type:x.video_mime||'video/mp4'});
+       log('動画制作AI：完成MP4本体をAPI応答からiPhoneへ取り込みました');
+     }else{
+       const vr=await fetch(videoUrl,{cache:'no-store'});
+       if(!vr.ok) throw new Error('video HTTP '+vr.status);
+       blob=await vr.blob();
+     }
+     if(!blob.size) throw new Error('empty video');
+     if(state.videoBlobUrl && state.videoBlobUrl.startsWith('blob:')) URL.revokeObjectURL(state.videoBlobUrl);
+     const blobUrl=URL.createObjectURL(blob);
+     state.videoBlobUrl=blobUrl;
+     v.src=blobUrl;
+     v.load();
+     const openLink=document.getElementById('videoOpenLink');
+     if(openLink){openLink.href=blobUrl;openLink.style.display='inline';}
+   }catch(fetchError){
+     // 念のため旧URL方式へフォールバック。
+     v.src=videoUrl;
+     const openLink=document.getElementById('videoOpenLink');
+     if(openLink){openLink.href=videoUrl;openLink.style.display='inline';}
+     log('動画制作AI：直接MP4取り込みに失敗 → 旧URL再生へフォールバック');
+   }
+   state.videoUrl=v.src; state.videoReady=true; state.narrationText=x.narration_text||'';
+   document.getElementById('resultBadge').textContent=x.audio_embedded
+     ? (x.music_provider==='imported_audio' && x.tts_status==='gemini_tts' ? 'MP4完成・BGM＋ナレーション' : (x.music_provider==='imported_audio' ? 'MP4完成・BGM入り' : 'MP4完成・ナレーション付き'))
+     : 'MP4完成・確認待ち';
+   document.getElementById('previewText').textContent=x.audio_embedded?'完成MP4です。再生ボタンから確認できます':'完成MP4です。🔊ナレーションで音声確認できます';
+   document.getElementById('nextAction').textContent='完成動画を確認してください';
+   log(x.audio_embedded?'動画制作AI：MP4＋ナレーション生成完了 → プレビューへ':'動画制作AI：MP4生成完了 → ナレーション確認を準備');
+
+ }catch(e){
+   if(empty)empty.style.display='grid';
+   document.getElementById('previewText').textContent='MP4生成に失敗しました。ログを確認してください';
+   log('動画制作AI：MP4生成エラー '+String(e).slice(0,100));
+ }
+}
+function selectedMusicProvider(){
+ const el=document.querySelector('input[name="musicProvider"]:checked');
+ return el?el.value:'none';
+}
+function updateMusicUI(){
+ state.musicProvider=selectedMusicProvider();
+ const box=document.getElementById('sunoPromptBox');
+ const file=document.getElementById('musicFile');
+ const help=document.getElementById('musicHelp');
+ if(box) box.style.display=state.musicProvider==='suno_manual'?'block':'none';
+ if(file) file.disabled=state.musicProvider!=='imported_audio';
+ if(help){
+   const h={
+    ace_step_local:'PCのACE-Stepで生成した音源をこの画面の外部音源として取り込めます。',
+    suno_manual:'Suno用指示を作成し、Sunoで生成・ダウンロードした音源を外部音源として取り込めます。',
+    imported_audio:'MusicSeed / BandLab / GarageBand等で書き出した音源を選択してください。',
+    none:'音楽を使わず、ナレーション中心で制作します。'
+   };
+   help.textContent=h[state.musicProvider];
+ }
+ localStorage.setItem('aiworkroom_state',JSON.stringify(state));
+}
+function makeSunoPrompt(){
+ const genre=document.getElementById('musicGenre')?.value||'rock';
+ state.musicGenre=genre;
+ const topic=(state.instruction||'短い生活情報動画').replace(/\s+/g,' ').slice(0,180);
+ const prompt='Style: '+genre+', energetic, catchy, original Japanese short-form song.\\n'+
+ 'Clear Japanese vocals, strong hook in the first seconds, memorable chorus, clean production, no artist imitation.\\n'+
+ 'Theme: '+topic;
+ state.musicPrompt=prompt;
+ const el=document.getElementById('sunoPrompt'); if(el) el.value=prompt;
+ document.getElementById('musicStatus').textContent='Suno指示作成済み';
+ log('音楽AI：Suno用オリジナル制作指示を作成');
+}
+async function prepareMusicBeforeRender(){
+ updateMusicUI();
+ state.musicGenre=document.getElementById('musicGenre')?.value||'rock';
+ const file=document.getElementById('musicFile');
+ state.musicAudioBase64='';
+ state.musicFilename='';
+ if(state.musicProvider==='imported_audio' && file && file.files && file.files[0]){
+   const f=file.files[0];
+   if(f.size>12*1024*1024){showToast('音源は12MB以下にしてください');throw new Error('music file too large');}
+   state.musicFilename=f.name;
+   state.musicAudioBase64=await new Promise((resolve,reject)=>{
+     const reader=new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=reject; reader.readAsDataURL(f);
+   });
+   document.getElementById('musicStatus').textContent='外部音源を準備済み';
+ }else if(state.musicProvider==='suno_manual'){
+   makeSunoPrompt();
+   document.getElementById('musicStatus').textContent='Suno生成後に音源取込';
+ }else{
+   document.getElementById('musicStatus').textContent=state.musicProvider==='none'?'音楽なし':'ACE-Step（PCローカル）';
+ }
+}
+document.querySelectorAll('input[name="musicProvider"]').forEach(e=>e.addEventListener('change',updateMusicUI));
+document.getElementById('musicGenre')?.addEventListener('change',()=>{state.musicGenre=document.getElementById('musicGenre').value;});
+document.getElementById('musicFile')?.addEventListener('change',()=>{updateMusicUI();});
+document.getElementById('memoryImportFile')?.addEventListener('change',e=>{importObsidianMemory(e.target.files&&e.target.files[0]);e.target.value='';});
+renderMemoryStatus();
 function playNarration(){
  const text=(state.narrationText||'').trim();
  if(!text){showToast('ナレーション原稿がまだありません');return;}
