@@ -77,6 +77,10 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
 
 <style id="cohesive-ui-overrides">
 .final-ui{position:relative!important;inset:auto!important;z-index:auto!important;min-height:0!important;overflow:visible!important;grid-column:1/-1!important}
+.shell{display:flex!important;flex-direction:column!important;align-items:stretch!important;max-width:1156px!important;margin:0 auto!important}
+#instructionForm{order:-1!important;width:auto!important;max-width:1120px!important;margin:0 auto 12px!important}
+#board{order:0!important}
+.project,.agents,.mobile-dashboard,.manager,.log,.gate,.status,.revision-panel:not(.final-revision){display:none!important}
 :root{--ink:#352b28;--muted:#766760;--paper:#f7f3ef;--card:#fffdfa;--line:#e7d9cf;--accent:#7c5a96;--accent-soft:#eee5f3;--ok:#3f765b;--warn:#a66b2e;--shadow:0 8px 24px rgba(54,38,30,.07)}
 html,body{background:var(--paper)!important;color:var(--ink)!important}
 body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;line-height:1.55}
