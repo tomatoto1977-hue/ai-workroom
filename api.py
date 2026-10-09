@@ -132,6 +132,8 @@ class RunRequest(BaseModel):
     max_output_tokens: int = 700
     # Browser-side persistent memory (localStorage/Obsidian Markdown export); bounded before use.
     memory_context: str = ""
+    music_provider: str = "auto_bgm"
+    music_genre: str = "acoustic"
 
 class ReviseRequest(BaseModel):
     instruction: str
@@ -592,7 +594,7 @@ def _render_video_files(
     music_filename: str = "",
     music_genre: str = "rock",
 ) -> dict[str, Any]:
-    allowed_music = {"none", "ace_step_local", "suno_manual", "imported_audio"}
+    allowed_music = {"none", "auto_bgm", "ace_step_local", "suno_manual", "imported_audio"}
     if music_provider not in allowed_music:
         raise ValueError("unsupported music provider")
     job=uuid.uuid4().hex
@@ -601,7 +603,11 @@ def _render_video_files(
     music_path = None
     music_status = "none"
     music_prompt = ""
-    if music_provider == "suno_manual":
+    if music_provider == "auto_bgm":
+        music_path = work / "original_bgm.wav"
+        _generate_original_bgm(music_path, 28)
+        music_status = "generated_free"
+    elif music_provider == "suno_manual":
         music_prompt = (
             f"Style: {music_genre}, energetic, catchy, original Japanese short-form song. "
             "Clear vocals, strong hook in the first seconds, no artist imitation. "
@@ -626,7 +632,7 @@ def _render_video_files(
         music_status = "local_required"
     cards=[
         ("テーマ選出",instruction,"01 / THEME"),
-        ("リサーチ","根拠・需要・権利を確認\\n未確認情報は断定しません","02 / RESEARCH"),
+        ("リサーチ",_research_card_text(results),"02 / RESEARCH"),
         ("企画","結論 → 具体例 → 今日できる行動","03 / PLAN"),
         ("ナレーション",_narration_text(instruction,results),"04 / SCRIPT"),
         ("映像・字幕","縦9:16 / 1画面1メッセージ","05 / VIDEO"),
@@ -758,13 +764,15 @@ async def theme_endpoint():
     return {"ok": True, "theme": await select_live_theme()}
 
 @app.get("/api/orchestrate_get")
-async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700, memory_context: str = ""):
+async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700, memory_context: str = "", music_provider: str = "auto_bgm", music_genre: str = "acoustic"):
     # iPhone/SafariでJSON POSTのCORS preflightが失敗する場合に備えた単純GET経路。
     return await orchestrate(RunRequest(
         instruction=instruction,
         project=project,
         max_output_tokens=max_output_tokens,
         memory_context=memory_context[:4000],
+        music_provider=music_provider,
+        music_genre=music_genre,
     ))
 
 @app.post("/api/orchestrate")
@@ -848,7 +856,8 @@ async def orchestrate(req: RunRequest):
     # オーケストレーション完了と同時に実MP4まで生成する。
     # フロントエンドから別リクエストを送らなくてよい構造にし、iPhone/Renderの再起動等で
     # 「制作開始のまま」「OPTIONSだけでPOSTが届かない」状態にならないようにする。
-    video = _render_video_files(req.instruction, results)
+    provider = req.music_provider if req.music_provider in {"none", "auto_bgm", "ace_step_local", "suno_manual"} else "none"
+    video = _render_video_files(req.instruction, results, music_provider=provider, music_genre=req.music_genre)
     return {
         "ok": True, "mode": "openai" if refined else "local_template",
         "openai_configured": bool(client), "model": MODEL if client else None,
