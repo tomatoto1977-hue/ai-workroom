@@ -233,9 +233,9 @@ function saveMemoryEntry(entry){
  const list=readMemories();const content=String(entry.content||'').trim().slice(0,3000);if(!content)return false;
  const title=String(entry.title||'学習メモ').trim().slice(0,180);
  const norm=v=>String(v||'').toLowerCase().replace(/[\s、。,.！!？?「」『』【】]/g,'').slice(0,220);
- const duplicate=list.find(m=>norm(m.title)===norm(title)&&norm(m.content)===norm(content));
- if(duplicate)return false;
- list.push({id:entry.id||('mem-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)),title,kind:entry.kind||'run',created_at:entry.created_at||new Date().toISOString(),status:entry.status||'unverified',source_url:String(entry.source_url||'').slice(0,800),tags:Array.isArray(entry.tags)?entry.tags.slice(0,12):[],content});
+ const entryId=entry.id?list.findIndex(m=>m.id===entry.id):-1;
+ const normalized={id:entry.id||('mem-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)),title,kind:entry.kind||'run',created_at:entry.created_at||new Date().toISOString(),status:entry.status||'unverified',source_url:String(entry.source_url||'').slice(0,800),tags:Array.isArray(entry.tags)?entry.tags.slice(0,12):[],content};
+ if(entryId>=0)list[entryId]=normalized;else{const duplicate=list.find(m=>norm(m.title)===norm(title)&&norm(m.content)===norm(content));if(duplicate)return false;list.push(normalized);}
  try{localStorage.setItem(MEMORY_KEY,JSON.stringify(list.slice(-100)));renderMemoryStatus();return true;}catch(e){showToast('記憶保存に失敗しました。端末の保存容量を確認してください');return false;}
 }
 function renderMemoryStatus(){
@@ -247,8 +247,9 @@ function buildMemoryContext(instruction){
  const list=readMemories();const tokens=memoryTokens(instruction);
  const ranked=list.map((m,i)=>{const body=m.title+' '+m.content+' '+(m.tags||[]).join(' ');const mt=memoryTokens(body);const overlap=tokens.filter(t=>mt.includes(t)).length;return {m,i,score:(m.kind==='rule'?100:0)+overlap*5+(m.kind==='research'?3:0)+i/1000};});
  ranked.sort((a,b)=>b.score-a.score);
- const selected=[...ranked.filter(x=>x.m.kind==='rule'),...ranked.filter(x=>x.m.kind!=='rule'&&x.score>0)].filter((x,i,a)=>a.findIndex(y=>y.m.id===x.m.id)===i).slice(0,5);
- let out='';for(const x of selected){const m=x.m;const part='['+m.kind+' / '+m.status+' / '+m.created_at+'] '+m.title+'\n'+m.content.slice(0,350)+(m.source_url?'\n出典URL: '+m.source_url:'')+'\n\n';if((out+part).length>1400)continue;out+=part;}
+ const unique=[...ranked.filter(x=>x.m.kind==='rule'),...ranked.filter(x=>x.m.kind!=='rule'&&x.score>0)].filter((x,i,a)=>a.findIndex(y=>y.m.id===x.m.id)===i);
+ const selected=[...unique.filter(x=>x.m.kind==='rule').slice(0,2),...unique.filter(x=>x.m.kind!=='rule').slice(0,3)];
+ let out='';for(const x of selected){const m=x.m;const part='['+m.kind+' / '+m.status+' / '+m.created_at+'] '+m.title+'\n'+m.content.slice(0,180)+(m.source_url?'\n出典URL: '+m.source_url:'')+'\n\n';if((out+part).length>650)continue;out+=part;}
  return {text:out.trim(),count:selected.length,ids:selected.map(x=>x.m.id)};
 }
 function recordRunMemory(data,instruction){
