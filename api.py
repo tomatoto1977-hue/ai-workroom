@@ -10,7 +10,7 @@ from functools import lru_cache
 import uuid
 import subprocess
 
-APP_VERSION = "2.6.0"
+APP_VERSION = "2.7.0"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
@@ -703,7 +703,7 @@ def _render_video_files(
         "narration_text":narration,
         "audio_embedded":audio_embedded,
         "video_qa": _video_file_qa(final_out),
-        "tts_provider":"Gemini 3.8 Flash TTS" if audio_embedded else "browser-fallback",
+        "tts_provider":"Gemini TTS" if tts_ok else "not_embedded",
         "tts_status":tts_status,
         "music_provider": music_provider,
         "music_status": music_status,
@@ -711,7 +711,8 @@ def _render_video_files(
         "music_prompt": music_prompt,
         "audio_note":(
             "音楽＋ナレーションをMP4へミックス済み。" if music_path and tts_ok
-            else "外部音源をMP4へ埋め込み済み。" if music_path
+            else "オリジナルBGMをMP4へ埋め込み済み。" if music_path and music_provider == "auto_bgm"
+            else "選択した外部音源をMP4へ埋め込み済み。" if music_path
             else "ナレーションのみMP4へ埋め込み済み。" if tts_ok
             else "音源未投入。安全に無音/ブラウザ確認へフォールバック。"
         ),
