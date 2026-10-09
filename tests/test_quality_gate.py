@@ -40,6 +40,14 @@ class QualityGateSafetyTests(unittest.TestCase):
         api._video_font(24)
         self.assertGreaterEqual(api._video_font.cache_info().hits, 1)
 
+    def test_renderer_uses_lazy_imports_and_small_video_response(self):
+        from pathlib import Path
+        source = Path("api.py").read_text(encoding="utf-8")
+        self.assertNotIn('"video_base64":', source)
+        self.assertNotIn("from PIL import Image, ImageDraw, ImageFont", source)
+        self.assertIn("def _video_card", source)
+        self.assertIn("import imageio_ffmpeg", source)
+
     def test_run_request_accepts_bounded_memory_context(self):
         req = api.RunRequest(instruction="test", memory_context="previous verified context")
         self.assertEqual(req.memory_context, "previous verified context")
