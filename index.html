@@ -148,22 +148,10 @@ button,input{font:inherit}.hot{position:absolute;border:0;background:transparent
       </div>
     </section>
 
-    <section class="final-card agents-card">
-      <h2>🤖 AIエージェント（11担当）</h2>
-      <p class="agents-note">担当一覧です。個別の実行状態は、APIの実行ログで確認します。</p>
-      <div class="agents-mini" id="agentsMini">
-        <div class="mini-agent"><b>統括AI</b><small>全工程・品質ゲート・最終判断</small></div>
-        <div class="mini-agent"><b>市場調査AI</b><small>需要・トレンド・市場情報</small></div>
-        <div class="mini-agent"><b>競争戦略AI</b><small>競合・差別化・戦略</small></div>
-        <div class="mini-agent"><b>企画AI</b><small>テーマ・構成・切り口</small></div>
-        <div class="mini-agent"><b>情報収集AI</b><small>調査・情報整理</small></div>
-        <div class="mini-agent"><b>予算AI</b><small>費用・利用制限・コスト監視</small></div>
-        <div class="mini-agent"><b>文章化AI</b><small>台本・説明文・ナレーション原稿</small></div>
-        <div class="mini-agent"><b>エビデンスAI</b><small>出典・根拠・事実確認</small></div>
-        <div class="mini-agent"><b>動画制作AI</b><small>映像・字幕・音声構成</small></div>
-        <div class="mini-agent"><b>編集AI</b><small>仕上げ・再編集・品質改善</small></div>
-        <div class="mini-agent"><b>実装AI</b><small>実装・テスト・受け渡し</small></div>
-      </div>
+    <section class="final-card pipeline-card">
+      <h2>🔗 制作パイプライン</h2>
+      <p>担当AIの数ではなく、工程ごとの実際の結果を確認します。</p>
+      <div class="pipeline-status" id="pipelineStatus" role="status" aria-live="polite">待機中：開始すると工程状態を表示します。</div>
     </section>
   </aside>
 
@@ -411,45 +399,30 @@ function tick(){
  render();
 }
 async function playWorkflow(data){
- state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
- apiDriven=true; workflowRunning=true;
+ const gate=data&&data.gate||{},score=Number(gate.score)||0;
+ const results=Array.isArray(data&&data.results)?data.results:[];
+ const video=data&&data.video,el=document.getElementById('pipelineStatus');
+ state.auditPassed=gate.passed===true&&score>=95;
+ workflowRunning=true;apiDriven=true;
  if(timer){clearInterval(timer);timer=null;}
- const groups=[
-   {stage:'調査',cards:[0],roles:['市場調査AI','競争戦略AI','情報収集AI','予算AI']},
-   {stage:'企画',cards:[1],roles:['企画AI']},
-   {stage:'制作',cards:[2,4],roles:['文章化AI','動画制作AI']},
-   {stage:'品質確認',cards:[3,4],roles:['エビデンスAI','編集AI']},
-   {stage:'実装',cards:[4],roles:['実装AI']},
-   {stage:'統括',cards:[],roles:['統括AI']}
+ const stages=[
+  {name:'API応答',ok:!!data&&data.ok===true},
+  {name:'企画・台本',ok:results.some(x=>x.status==='completed'&&/文章化AI|企画AI/.test(x.role||''))},
+  {name:'品質監査',ok:gate.passed===true&&score>=95},
+  {name:'動画ファイル生成',ok:!!(video&&video.video_url&&video.video_qa&&video.video_qa.status==='PASS')},
+  {name:'音声埋め込み',ok:!!(video&&video.audio_embedded),optional:true},
+  {name:'再生確認',ok:false,pending:true}
  ];
- const results=data.results||[];
- for(const g of groups){
-   if(paused){await new Promise(r=>setTimeout(r,500));continue;}
-   g.cards.forEach(i=>{state.phases[i]='working';state.progress[i]=Math.max(state.progress[i],20);});
-   log(g.stage+'工程：'+g.roles.join('・')+' が受領して作業開始');
-   render();
-   await new Promise(r=>setTimeout(r,900));
-   const passed=!!data.gate?.passed;
-   g.cards.forEach(i=>{state.progress[i]=passed?100:Math.min(94,Math.max(state.progress[i],94));state.phases[i]=passed?'done':'thinking';});
-   const matching=results.filter(x=>g.roles.includes(x.role));
-   matching.forEach(x=>{if(x.status==='completed')log(x.role+'：成果を完了し次工程へ引き渡し');});
-   const rechecks=results.filter(x=>x.stage==='改善・再点検');
-   rechecks.forEach(x=>log(x.role+'：95点基準の改善・再点検を実施'));
-   for(let j=0;j<g.cards.length-1;j++) moveDocument(g.cards[j],g.cards[j+1],g.stage+'工程の成果を引き渡し');
-   if(g.cards.length===2 && !passed) state.phases[g.cards[1]]='waiting';
-   render();
-   await new Promise(r=>setTimeout(r,500));
- }
- workflowRunning=false; apiDriven=false;
- state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
- state.score = state.auditPassed ? Math.min(100, Number(data.gate.score)) : Math.min(94, typeof data.gate?.score==='number' ? data.gate.score : state.score);
+ if(el)el.innerHTML=stages.map(s=>'<div class="pipeline-row"><b>'+s.name+'</b><span>'+(s.pending?'確認待ち':s.ok?'完了':s.optional?'未設定':'要確認')+'</span></div>').join('');
+ state.score=state.auditPassed?Math.min(100,score):Math.min(94,score||state.score);
  state.quality=state.quality.map(()=>state.score);
- document.getElementById('managerTask').textContent=data.gate?.passed?'品質95点合格：最終成果を統括AIへ':'工程完了：品質'+state.score+'点。改善・再点検が必要';
- log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
- render();
- start();
+ document.getElementById('managerTask').textContent=state.auditPassed?'品質ゲート合格。動画ファイルの確認へ':'品質ゲート未達または要確認。完成扱いにしません';
+ log('API応答を受領。返却された実データを基準に状態を更新');
+ log('品質監査：'+score+'点 / '+(state.auditPassed?'95点以上で合格':'95点未満または未合格'));
+ log('動画生成：'+(video&&video.video_url?'ファイルURLあり':'ファイルURLなし')+' / 音声埋込：'+(video&&video.audio_embedded?'あり':'なし'));
+ workflowRunning=false;apiDriven=false;render();start();
 }
-function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length){log('統括AI：5人を非同期で稼働開始');log('調査AI → 企画AI：調査資料を準備中');log('台本AI：内容を作成中');}else{log('統括AI：5人を非同期で稼働中');}render();}
+function start(){if(timer)clearInterval(timer);timer=setInterval(tick,900);if(!logs.length)log('待機中：実際のAPI処理が開始されるとログが記録されます');render();}
 async function startFirstVideo(){
  const btn=document.getElementById('firstVideoButton');
  const next=document.getElementById('nextAction');
@@ -493,9 +466,9 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
  const projectLabel=state.instruction.replace(/\s+/g,' ').trim();
  document.getElementById('projectTitle').textContent='現在のプロジェクト：'+(projectLabel.length>34?projectLabel.slice(0,34)+'…':projectLabel);
  document.getElementById('managerTask').textContent='指示を受領：「'+state.instruction+'」';
- log('統括AI：ユーザー指示を受領 → 各担当へ分担');
+ log('実行制御：ユーザー指示を受領し、APIへ送信');
  roles.forEach((r,i)=>{if(state.phases[i]==='done')state.progress[i]=Math.min(state.progress[i],95); if(i===0)state.phases[i]='working'; else if(state.phases[i]!=='working')state.phases[i]=i===1?'thinking':'waiting';});
- log('市場調査AI・競争戦略AI：並列調査を開始');log('企画AI・情報収集AI・予算AI：受領待ち');log('文章化AI・動画制作AI・編集AI・実装AI：順次受領待ち');
+ const pipeline=document.getElementById('pipelineStatus');if(pipeline)pipeline.textContent='処理中：APIから実際の結果が返るのを待っています。';
  x.value='';start();render();
  try{
    const memory=buildMemoryContext(state.instruction);
@@ -528,14 +501,14 @@ const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();doc
      data.workflow.forEach(w=>log(w.stage+'工程：'+w.roles.join('・')+' が担当'));
    }
    if(data.mode==='openai'){
-     log('統括AI：実AI処理が完了。各担当の成果を受領');
+     log('API：生成結果を受領。返却された実データを確認します');
      await playWorkflow(data);
      data.results.forEach(item=>{
        if(item.status==='completed'){
          const summary=(item.text||'').replace(/\s+/g,' ').slice(0,70);
-         log(item.role+'：成果を次工程へ引き渡し'+(summary?'「'+summary+'」':''));
+         log(item.role+'：API返却結果を受領'+(summary?'「'+summary+'」':''));
        } else if(item.status==='error'){
-         log(item.role+'：エラーを検知。改善待ち');
+         log(item.role+'：エラー状態を受領。要確認');
        }
      });
      state.artifact=data.results.map(item=>'【'+item.role+'】\\n'+(item.text||'')).join('\\n\\n');
@@ -697,7 +670,7 @@ async function renderCompletedVideo(data){
    const videoUrl=API_URL+x.video_url+'?t='+Date.now();
    // Renderの一時ファイルは再起動/スピンダウンで消えるため、完成直後にiPhone側へBlobとして取り込む。
    // これにより、同じ画面を開いている間はRenderのファイル寿命に依存せず再生できる。
-   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){}};
+   v.onloadedmetadata=()=>{try{v.pause();v.currentTime=0;}catch(e){} const ps=document.getElementById('pipelineStatus');if(ps){const rows=ps.querySelectorAll('.pipeline-row');const last=rows[rows.length-1];if(last)last.innerHTML='<b>再生確認</b><span>メタデータ読込済み</span>';}};
    v.onplay=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='none';};
    v.onerror=()=>{const poster=document.getElementById('videoPosterFallback');if(poster)poster.style.display='block';};
    if(x.poster_url){
