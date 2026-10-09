@@ -36,6 +36,15 @@ AI画像を毎回テーマに合わせて生成 → TikTokセーフエリアに�
 
 実装ファイル: video_factory/shorts_pipeline_v15.py
 
+## Obsidian 自動同期（Local REST API）
+
+- index.html の継続記憶カードに、ObsidianのLocal REST APIプラグイン接続欄を追加しました。
+- 設定後、ブラウザ内記憶をObsidianの `AI作業室/01_学習コンテキスト/AI作業室_継続記憶.md` と自動で統合します。起動時に保管庫の同ファイルを読み込み、保存時には少し待ってから同期します。
+- 同期は端末の localhost に限定し、APIキーはそのブラウザの localStorage に保存します。APIキーをRenderやAI APIへ送信しません。
+- 初回はObsidianでLocal REST APIコミュニティプラグインを導入し、APIキーとCORS許可元を設定してください。手順は [docs/obsidian-auto-sync.md](docs/obsidian-auto-sync.md) を参照。
+- 接続できない場合も、ブラウザ内記憶は保持し、従来のMarkdown手動入出力を利用できます。同期ステータスを成功表示できた場合のみ、書き込み成功として扱います。
+- 注意：ObsidianとAI作業室を同じ端末・同じブラウザで開く構成が基本です。iPhone上のObsidianとPC上のブラウザのように端末が異なる場合、 localhost は接続先端末自身を指すため、そのままでは同期されません。
+
 ## 継続記憶・Obsidian連携（追加）
 - AI作業室のブラウザ内に、ユーザー指定ルール・テーマ調査ログ・実行結果の要約を最大100件保存します。
 - 次回実行時は関連するルールと調査メモを最大650文字程度に絞り、制作AIと品質監査AIへ渡します。URL長とトークン使用量を抑えるため、保管庫全体は送信しません。
