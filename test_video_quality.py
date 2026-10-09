@@ -39,5 +39,17 @@ class VideoQualitySafetyTests(unittest.TestCase):
         self.assertIn("公式情報を確認", text)
 
 
+    def test_default_music_is_local_and_free(self):
+        request = api.RunRequest(instruction="テスト")
+        self.assertEqual(request.music_provider, "auto_bgm")
+        self.assertFalse(api.GEMINI_TTS_ENABLED)
+
+    def test_safety_rules_keep_human_approval_and_rights_checks(self):
+        rules = api.safety_rules()
+        self.assertIn("人間承認後のみ", rules)
+        self.assertIn("著作権侵害", rules)
+        self.assertIn("特定個人", rules)
+
+
 if __name__ == "__main__":
     unittest.main()
