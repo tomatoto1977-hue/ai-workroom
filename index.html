@@ -573,7 +573,8 @@ async function renderCompletedVideo(data){
    document.getElementById('previewText').textContent='MP4をレンダリング中…';
    // /api/orchestrate が新しいMP4を返す場合は、その結果をそのまま使用する。
    // 旧APIとの互換性のため、videoが無い場合だけ従来のrender_videoを呼ぶ。
-   let x=(state.musicProvider==='none' && data.video) ? {ok:true,...data.video} : null;
+   const needsAudioRerender=state.musicProvider==='imported_audio' && !!state.musicAudioBase64;
+   let x=(data.video && !needsAudioRerender) ? {ok:true,...data.video} : null;
    if(!x){
      const r=await fetch(API_URL+'/api/render_video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
        instruction:state.instruction,results:data.results||[],music_provider:state.musicProvider,
