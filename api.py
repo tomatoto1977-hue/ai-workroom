@@ -10,7 +10,7 @@ from functools import lru_cache
 import uuid
 import subprocess
 
-APP_VERSION = "2.4.0"
+APP_VERSION = "2.4.1"
 app = FastAPI(title="AI Workroom API", version=APP_VERSION)
 app.add_middleware(CORSMiddleware, allow_origins=["https://ai-workroom.onrender.com","http://localhost:3000","http://127.0.0.1:3000"], allow_origin_regex=r"https://.*\.onrender\.com", allow_credentials=False, allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Range","Accept-Ranges","Content-Length"])
 VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/ai_workroom_videos"))
@@ -460,7 +460,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100", "gemini_tts_configured": bool(GEMINI_API_KEY), "gemini_tts_enabled": GEMINI_TTS_ENABLED, "gemini_tts_model": GEMINI_TTS_MODEL, "theme_engine": "live", "theme_auto_enabled": THEME_AUTO_ENABLED, "youtube_trend_research_enabled": bool(YOUTUBE_TREND_RESEARCH_ENABLED and YOUTUBE_API_KEY)}
+    return {"ok": True, "service": "ai-workroom-api", "version": APP_VERSION, "openai_configured": bool(API_KEY), "model": MODEL, "roles": len(ROLES), "quality_gate": "95/100; local fallback fail-closed", "gemini_tts_configured": bool(GEMINI_API_KEY), "gemini_tts_enabled": GEMINI_TTS_ENABLED, "gemini_tts_model": GEMINI_TTS_MODEL, "theme_engine": "live", "theme_auto_enabled": THEME_AUTO_ENABLED, "youtube_trend_research_enabled": bool(YOUTUBE_TREND_RESEARCH_ENABLED and YOUTUBE_API_KEY)}
 
 def _gemini_tts_wav(text: str, out_path: Path) -> tuple[bool, str]:
     if not GEMINI_TTS_ENABLED:
@@ -599,8 +599,8 @@ def _render_video_files(
     ff=imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
         ff,"-y","-framerate","1/4","-i",str(work/"%02d.png"),
-        "-vf","fps=30","-c:v","libx264","-profile:v","main","-level","3.1",
-        "-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
+        "-vf","fps=30","-c:v","libx264","-preset","ultrafast","-crf","28","-threads","1",
+        "-profile:v","main","-level","3.1","-pix_fmt","yuv420p","-r","30","-movflags","+faststart",str(out)
     ],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=120)
 
     narration=_narration_text(instruction,results)
