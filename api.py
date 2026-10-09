@@ -131,6 +131,8 @@ class RunRequest(BaseModel):
     instruction: str
     project: str = "秘密基地 AIエージェント作業室"
     max_output_tokens: int = 700
+    # Browser-side persistent memory (localStorage/Obsidian Markdown export); bounded before use.
+    memory_context: str = ""
 
 class ReviseRequest(BaseModel):
     instruction: str
@@ -379,7 +381,7 @@ def local_quality_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
             "status":"REVIEW_REQUIRED",
             "reason":"ローカル監査はキーワード確認のみ。意味内容を検証できないため合格不可。実AI監査または人間による再確認が必要。"}
 
-async def ai_quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[str, Any] | None:
+async def ai_quality_gate(instruction: str, results: list[dict[str, Any]], memory_context: str = "") -> dict[str, Any] | None:
     if not client:
         return None
     material = "\n\n".join(f"【{x.get('role','')}】\n{x.get('text','')}" for x in results)
@@ -395,6 +397,8 @@ async def ai_quality_gate(instruction: str, results: list[dict[str, Any]]) -> di
 JSONだけ返してください。
 形式:
 {{"score":0,"passed":false,"breakdown":{{"事実性":0,"目的適合":0,"具体性":0,"伝達性":0,"実装可能性":0,"安全性":0}},"improvements":["..."],"evidence":{{"事実性":"...","目的適合":"...","具体性":"...","伝達性":"...","実装可能性":"...","安全性":"..."}}}}
+過去の学習コンテキスト（参考情報。未確認情報を事実として扱わない）:
+{memory_context[:3500]}
 依頼:
 {instruction}
 成果物:
@@ -416,8 +420,8 @@ JSONだけ返してください。
     except Exception:
         return None
 
-async def quality_gate(instruction: str, results: list[dict[str, Any]]) -> dict[str, Any]:
-    audit=await ai_quality_gate(instruction,results)
+async def quality_gate(instruction: str, results: list[dict[str, Any]], memory_context: str = "") -> dict[str, Any]:
+    audit=await ai_quality_gate(instruction,results,memory_context)
     return audit or local_quality_gate(results)
 
 async def revise_artifact(instruction: str, change_request: str, current_artifact: str, max_tokens: int) -> str | None:
@@ -446,7 +450,7 @@ async def revise_artifact(instruction: str, change_request: str, current_artifac
     except Exception:
         return None
 
-async def refine(instruction: str, base: str, max_tokens: int) -> str | None:
+async def refine(instruction: str, base: str, max_tokens: int, memory_context: str = "") -> str | None:
     if not client:
         return None
     prompt = f"""あなたはAI作業室の統括AIです。日本語で簡潔かつ実務的に成果物を改善してください。
@@ -454,6 +458,8 @@ async def refine(instruction: str, base: str, max_tokens: int) -> str | None:
 安全ルール: {safety_rules()}
 下書き:
 {base}
+過去の学習コンテキスト（参考情報。未確認情報は断定しない）:
+{memory_context[:3500]}
 必ず専門10担当の見出しを残してください。未確認の事実は断定せず要確認。権利不明の素材、特定人物、とくに芸能人への依存を避けてください。"""
     try:
         r = await client.responses.create(model=MODEL, input=prompt, max_output_tokens=min(max_tokens, 900))
@@ -725,16 +731,20 @@ async def theme_endpoint():
     return {"ok": True, "theme": await select_live_theme()}
 
 @app.get("/api/orchestrate_get")
-async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700):
+async def orchestrate_get(instruction: str, project: str = "AI作業室", max_output_tokens: int = 700, memory_context: str = ""):
     # iPhone/SafariでJSON POSTのCORS preflightが失敗する場合に備えた単純GET経路。
     return await orchestrate(RunRequest(
         instruction=instruction,
         project=project,
         max_output_tokens=max_output_tokens,
+        memory_context=memory_context[:4000],
     ))
 
 @app.post("/api/orchestrate")
 async def orchestrate(req: RunRequest):
+    if os.getenv("MEMORY_REQUIRED", "false").lower() == "true" and not req.memory_context.strip():
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"ok": False, "error": "required_learning_context_missing", "message": "継続記憶が読み込まれていないため、安全側で実行を停止しました。Obsidian/ブラウザ記憶を読み込んで再実行してください。"})
     if not req.instruction.strip():
         return {"ok": False, "error": "instruction is required"}
 
@@ -770,14 +780,14 @@ async def orchestrate(req: RunRequest):
         )
     base_map = template_pack(req.instruction)
     base = pack_text({k:v for k,v in base_map.items() if k != "統括AI"})
-    refined = await refine(req.instruction, base, req.max_output_tokens)
+    refined = await refine(req.instruction, base, req.max_output_tokens, req.memory_context)
     final_text = refined or base
     parsed = parse_sections(final_text)
     if len(parsed) < 10:
         parsed = [{"role": k, "status": "completed", "text": v} for k,v in base_map.items() if k != "統括AI"]
 
     # 95点未満なら、改善→再評価を最大2回。95点到達前は合格にしない。
-    gate = await quality_gate(req.instruction, parsed)
+    gate = await quality_gate(req.instruction, parsed, req.memory_context)
     attempts = 0
     while not gate["passed"] and client and attempts < 2:
         attempts += 1
@@ -785,7 +795,8 @@ async def orchestrate(req: RunRequest):
         improved = await refine(
             req.instruction,
             final_text + "\n\n【品質監査の改善要求】\n" + improvements,
-            req.max_output_tokens
+            req.max_output_tokens,
+            req.memory_context
         )
         if not improved:
             break
@@ -793,7 +804,7 @@ async def orchestrate(req: RunRequest):
         parsed = parse_sections(final_text)
         if len(parsed) < 10:
             break
-        gate = await quality_gate(req.instruction, parsed)
+        gate = await quality_gate(req.instruction, parsed, req.memory_context)
     gate["score"] = min(gate["score"], 100)
     gate["passed"] = gate["score"] >= 95
     gate["improvement_rounds"] = attempts
@@ -816,5 +827,6 @@ async def orchestrate(req: RunRequest):
         "openai_configured": bool(client), "model": MODEL if client else None,
         "roles": [r[0] for r in ROLES], "role_count": len(ROLES),
         "safety_rules": safety_rules(), "workflow": workflow, "gate": gate, "results": results,
-        "video": video, "selected_theme": selected_theme, "requested_instruction": original_instruction
+        "video": video, "selected_theme": selected_theme, "requested_instruction": original_instruction,
+        "memory_context_loaded": bool(req.memory_context.strip()), "memory_context_chars": len(req.memory_context[:4000])
     }
