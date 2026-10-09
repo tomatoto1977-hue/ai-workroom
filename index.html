@@ -373,6 +373,8 @@ function togglePause(){paused=!paused;document.getElementById('status').textCont
 function newProject(){state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){
  state.auditPassed=false;
+ if(Number(state.score)>=95) state.score=94;
+ state.quality=state.quality.map(()=>Math.min(94,Number(state.score)||0));
  await prepareMusicBeforeRender();
 const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
  state.instruction=x.value.trim();
@@ -477,6 +479,8 @@ async function reviseFromRequest(){
  if(workflowRunning){document.getElementById('revisionStatus').textContent='現在の編集工程が進行中です。完了後に再度変更できます';return;}
  const current=state.artifact||'現在の成果物情報はまだありません。現在のプロジェクト指示を基準に編集してください。';
  state.auditPassed=false;
+ if(Number(state.score)>=95) state.score=94;
+ state.quality=state.quality.map(()=>Math.min(94,Number(state.score)||0));
  btn.disabled=true;btn.textContent='編集・再監査中…';workflowRunning=true;apiDriven=true;
  document.getElementById('revisionStatus').textContent='現在の成果物を読み込み、変更要望に沿って編集しています';
  log('編集AI：変更要望を受領 → 現在の成果物を基準にブラッシュアップ開始');
