@@ -421,17 +421,17 @@ function memoryFolderFor(m){
  return '01_学習コンテキスト';
 }
 function parseObsidianMemoryMarkdown(md){
- const out=[];const blocks=[...String(md||'').matchAll(/<!-- AIW_MEMORY_BEGIN -->([\\s\\S]*?)<!-- AIW_MEMORY_END -->/g)];
+ const out=[];const blocks=[...String(md||'').matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];
  for(const match of blocks){
-  const b=match[1];const title=(b.match(/^##\\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';
-  const get=k=>{const prefix='- '+k+': ';const line=b.split('\\n').find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim():'';};
-  const marker=b.indexOf('\\n\\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\\n]*\\n/,'').trim();
+  const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';
+  const get=k=>{const prefix='- '+k+': ';const line=b.split('\n').find(x=>x.startsWith(prefix));return line?line.slice(prefix.length).trim():'';};
+  const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();
   if(content)out.push({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});
  }
  return out;
 }
 function memoryEntryMarkdown(m){
- return '<!-- AIW_MEMORY_BEGIN -->\\n## '+String(m.title||'学習メモ').replace(/[\\r\\n]/g,' ')+'\\n- id: '+m.id+'\\n- kind: '+m.kind+'\\n- created_at: '+m.created_at+'\\n- status: '+m.status+'\\n- source_url: '+(m.source_url||'')+'\\n- tags: '+(m.tags||[]).join(', ')+'\\n\\n'+m.content+'\\n\\n<!-- AIW_MEMORY_END -->\\n';
+ return '<!-- AIW_MEMORY_BEGIN -->\n## '+String(m.title||'学習メモ').replace(/[\r\n]/g,' ')+'\n- id: '+m.id+'\n- kind: '+m.kind+'\n- created_at: '+m.created_at+'\n- status: '+m.status+'\n- source_url: '+(m.source_url||'')+'\n- tags: '+(m.tags||[]).join(', ')+'\n\n'+m.content+'\n\n<!-- AIW_MEMORY_END -->\n';
 }
 async function readObsidianCategoryMirrors(settings,headers){
  const folders=['00_絶対ルール','01_学習コンテキスト','02_リサーチ','03_制作・品質監査','04_改善実験','90_アーカイブ'];
@@ -470,9 +470,9 @@ async function syncObsidianMemory(showResult=false){
    const memories=readMemories();
    for(const m of memories){
      const folder=memoryFolderFor(m);
-     const safeTitle=String(m.title||'学習メモ').replace(/[\\\\/:*?"<>|\\x00-\\x1f]/g,'-').replace(/\\s+/g,'-').slice(0,64)||'学習メモ';
+     const safeTitle=String(m.title||'学習メモ').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,'-').slice(0,64)||'学習メモ';
      const notePath='AI作業室/'+folder+'/'+safeTitle+'-'+String(m.id||'memory').replace(/[^a-zA-Z0-9-]/g,'').slice(-18)+'.md';
-     const noteResponse=await fetch(obsidianEndpoint(settings.url,notePath),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:'# '+m.title+'\\n\\n分類：'+folder+'\\n\\n'+memoryEntryMarkdown(m)});
+     const noteResponse=await fetch(obsidianEndpoint(settings.url,notePath),{method:'PUT',headers:{...headers,'Content-Type':'text/markdown; charset=utf-8'},body:'# '+m.title+'\n\n分類：'+folder+'\n\n'+memoryEntryMarkdown(m)});
      if(!noteResponse.ok)throw new Error('分類ノートの保存に失敗しました（HTTP '+noteResponse.status+'）。');
    }
    setObsidianSyncStatus('同期成功：'+readMemories().length+'件をObsidianと統合しました。最終同期 '+new Date().toLocaleTimeString('ja-JP'));
