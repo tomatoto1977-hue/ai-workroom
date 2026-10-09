@@ -556,6 +556,33 @@ def _video_file_qa(video_path: Path) -> dict[str, Any]:
     return report
 
 
+def _generate_original_bgm(path: Path, duration_seconds: int = 28) -> None:
+    """Generate an original quiet chord bed locally; no external service or download."""
+    import math, struct, wave
+    sample_rate = 22050
+    total = sample_rate * duration_seconds
+    chords = [(261.63,329.63,392.00),(220.00,261.63,329.63),(174.61,220.00,261.63),(196.00,246.94,293.66)]
+    pcm = bytearray(total * 4)
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(2); wf.setsampwidth(2); wf.setframerate(sample_rate)
+        for i in range(total):
+            t = i / sample_rate
+            chord = chords[min(3, int(t // 7))]
+            envelope = min(1.0, t / 1.2) * min(1.0, max(0.0, (duration_seconds - t) / 2.5))
+            pulse = 0.82 + 0.18 * math.sin(2 * math.pi * 0.18 * t)
+            sample = sum(math.sin(2 * math.pi * f * t) for f in chord) / len(chord)
+            value = int(32767 * 0.075 * envelope * pulse * sample)
+            struct.pack_into("<hh", pcm, i * 4, value, value)
+        wf.writeframes(pcm)
+
+
+def _research_card_text(results: list[dict[str, Any]]) -> str:
+    for item in results or []:
+        if item.get("role") == "情報収集AI":
+            body = str(item.get("text") or "").strip()
+            if body: return body[:220]
+    return "調査結果・出典が返却されていません。調査未完了として扱い、未確認の事実は断定しません."
+
 def _render_video_files(
     instruction: str,
     results: list[dict[str, Any]],
