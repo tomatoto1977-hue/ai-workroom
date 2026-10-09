@@ -236,6 +236,7 @@ const state=JSON.parse(localStorage.getItem('aiworkroom_state')||'null')||{
  musicFilename:'',
  musicPrompt:''
 };
+state.auditPassed = state.auditPassed === true && Number(state.score) >= 95;
 const phaseText={working:'作業中…',thinking:'考え中…',waiting:'待機中…',done:'完了'};
 const phaseLog={working:'工程を進行中',thinking:'考え中…',waiting:'次の受け渡しを待機中',done:'工程完了'};
 function renderAgents(){
@@ -252,7 +253,7 @@ function render(){
  renderAgents();
  const avg=Math.round(state.progress.reduce((a,b)=>a+b,0)/5);
  document.getElementById('overall').textContent='工程 '+avg+'%';
- const gs=document.getElementById('gateStatus'); if(gs) gs.textContent=state.score>=95?'95点合格：次工程へ':'改善・再点検が必要';
+ const gs=document.getElementById('gateStatus'); if(gs) gs.textContent=(state.auditPassed===true && state.score>=95)?'95点合格：次工程へ':'改善・再点検が必要';
  document.getElementById('quality').textContent='品質 '+state.score+'点';
  document.getElementById('gateScore').textContent=state.score+'点';
  localStorage.setItem('aiworkroom_state',JSON.stringify(state));
@@ -291,12 +292,13 @@ function tick(){
  });
  if(Math.random()<.18) log(roles[Math.floor(Math.random()*5)][0]+'：'+phaseLog[state.phases[Math.floor(Math.random()*5)]]);
  if(!state.quality)state.quality=[82,82,82,82,82];
- if(Math.random()<.12){const q=Math.floor(Math.random()*5);if(state.quality[q]<95)state.quality[q]++;}
- state.score=Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length);
- if(state.score>=95 && Math.random()<.03) log('統括AI：品質95点以上を確認。次工程へ進行');
+ if(Math.random()<.12){const q=Math.floor(Math.random()*5);if(state.quality[q]<94)state.quality[q]++;}
+ if(state.auditPassed===true){state.score=Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length);}
+ else {state.score=Math.min(94,Math.round(state.quality.reduce((a,b)=>a+b,0)/state.quality.length));}
  render();
 }
 async function playWorkflow(data){
+ state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
  apiDriven=true; workflowRunning=true;
  if(timer){clearInterval(timer);timer=null;}
  const groups=[
@@ -326,7 +328,8 @@ async function playWorkflow(data){
    await new Promise(r=>setTimeout(r,500));
  }
  workflowRunning=false; apiDriven=false;
- state.score=(typeof data.gate?.score==='number')?data.gate.score:(data.gate?.passed?95:Math.min(state.score,94));
+ state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
+ state.score = state.auditPassed ? Math.min(100, Number(data.gate.score)) : Math.min(94, typeof data.gate?.score==='number' ? data.gate.score : state.score);
  state.quality=state.quality.map(()=>state.score);
  document.getElementById('managerTask').textContent=data.gate?.passed?'品質95点合格：最終成果を統括AIへ':'工程完了：品質'+state.score+'点。改善・再点検が必要';
  log(data.gate?.passed?'統括AI：品質ゲート95点を確認。工程完了':'統括AI：品質ゲート95点未達。改善工程が必要');
@@ -366,7 +369,7 @@ async function startFirstVideo(){
  }
 }
 function togglePause(){paused=!paused;document.getElementById('status').textContent=paused?'● PAUSED　作業を一時停止中':'● LIVE　5人のAIが非同期で作業中';log(paused?'統括AI：一時停止':'統括AI：作業を再開');}
-function newProject(){state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
+function newProject(){state.auditPassed=false;state.progress=[0,0,0,0,0];state.quality=[70,70,70,70,70];state.score=70;state.phases=['working','waiting','waiting','waiting','waiting'];state.delivered=[false,false,false,false,false];logs=[];log('統括AI：新規プロジェクト開始');start();}
 async function send(){
  await prepareMusicBeforeRender();
 const x=document.getElementById('instruction');if(!x.value.trim()){x.focus();document.getElementById('managerTask').textContent='まず「統括AIへの指示」に内容を入力してください';return;} if(workflowRunning){document.getElementById('managerTask').textContent='現在の工程が進行中です。完了後に次の指示を入力できます';return;} const sendBtn=document.querySelector('#instructionForm button');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='送信中…';}
@@ -471,6 +474,7 @@ async function reviseFromRequest(){
  if(!request){input.focus();document.getElementById('revisionStatus').textContent='変更したい内容を入力してください';return;}
  if(workflowRunning){document.getElementById('revisionStatus').textContent='現在の編集工程が進行中です。完了後に再度変更できます';return;}
  const current=state.artifact||'現在の成果物情報はまだありません。現在のプロジェクト指示を基準に編集してください。';
+ state.auditPassed=false;
  btn.disabled=true;btn.textContent='編集・再監査中…';workflowRunning=true;apiDriven=true;
  document.getElementById('revisionStatus').textContent='現在の成果物を読み込み、変更要望に沿って編集しています';
  log('編集AI：変更要望を受領 → 現在の成果物を基準にブラッシュアップ開始');
@@ -479,28 +483,13 @@ async function reviseFromRequest(){
    const data=await r.json();
    if(!data.ok) throw new Error(data.error||'revision failed');
    if(data.revised_artifact) state.artifact=data.revised_artifact;
-   // 変更要望を実際のMP4へ反映した再レンダリング結果を受領する。
+   // 初回と再編集の両方で、同じMP4取り込み・Blob再生経路を使う。
    if(data.video?.video_url){
-     const v=document.getElementById('completedVideo');
-     if(v){
-       const revisedVideoUrl=API_URL+data.video.video_url+'?t='+Date.now();
-       v.src=revisedVideoUrl;
-       if(data.video.poster_url){
-         const revisedPosterUrl=API_URL+data.video.poster_url+'?t='+Date.now();
-         v.poster=revisedPosterUrl;
-         const poster=document.getElementById('videoPosterFallback');
-         if(poster){poster.src=revisedPosterUrl;poster.style.display='block';}
-       }
-       const openLink=document.getElementById('videoOpenLink');
-       if(openLink){openLink.href=revisedVideoUrl;openLink.style.display='inline';}
-       v.load();
-       state.videoUrl=v.src;
-       state.videoReady=true;
-     }
-     state.narrationText=data.video.narration_text||state.narrationText||'';
-     log('動画制作AI：変更要望を実MP4へ反映 → 新しい動画を書き出し');
+     await renderCompletedVideo({video:data.video,results:data.results||[]});
+     log('動画制作AI：再編集MP4をBlob方式で取り込み');
    }
-   state.score=typeof data.gate?.score==='number'?data.gate.score:state.score;
+   state.auditPassed = data.gate?.passed === true && Number(data.gate?.score) >= 95;
+   state.score = state.auditPassed ? Math.min(100, Number(data.gate.score)) : Math.min(94, typeof data.gate?.score==='number' ? data.gate.score : state.score);
    state.quality=state.quality.map(()=>state.score);
    state.progress=[100,100,100,100,100];
    state.phases=['done','done','done','done','done'];
@@ -564,7 +553,7 @@ function syncThemeFlow(){
  const p=state.progress||[];
  const avg=p.reduce((a,b)=>a+b,0)/Math.max(1,p.length);
  const idx=avg<15?0:avg<32?1:avg<50?2:avg<72?3:avg<95?4:5;
- steps.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx || (i===5 && state.score>=95));});
+ steps.forEach((s,i)=>{s.classList.toggle('active',i===idx);s.classList.toggle('done',i<idx || (i===5 && state.auditPassed===true && state.score>=95));});
 }
 async function renderCompletedVideo(data){
  const v=document.getElementById('completedVideo'), empty=document.getElementById('videoEmpty');
@@ -713,7 +702,7 @@ function playNarration(){
 function syncFinalUI(){
  syncThemeFlow();
  const score=Number(state.score||0);
- const passed=score>=95;
+ const passed=state.auditPassed===true && score>=95;
  const el=id=>document.getElementById(id);
  if(el('finalScore')) el('finalScore').textContent=score;
  if(el('finalGate')) el('finalGate').textContent=passed?'95点合格':'改善・再点検が必要';
