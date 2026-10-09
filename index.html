@@ -145,7 +145,7 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
  .control button{width:100%!important}
  .final-card{padding:14px!important;border-radius:14px!important}
 }
-.editor-app-guide{margin-top:8px;padding:10px 11px;background:#faf4ee;border:1px solid #eadfd7;border-radius:11px;font-size:11px;line-height:1.65;white-space:pre-line;color:#5e5048}.editor-app-actions{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}.editor-app-actions button{border:0;border-radius:11px;padding:10px 12px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.editor-app-actions button.secondary{background:#eee5dd;color:#5e5048}.editor-app-card{align-self:start}@media(max-width:700px){.editor-app-card{grid-column:1/-1}.editor-app-actions{grid-template-columns:1fr 1fr}.editor-app-actions button:first-child{grid-column:1/-1}.editor-app-guide{font-size:12px}}.editor-app-guide{margin-top:8px;padding:10px 11px;background:#faf4ee;border:1px solid #eadfd7;border-radius:11px;font-size:11px;line-height:1.65;white-space:pre-line;color:#5e5048}.editor-app-actions{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}.editor-app-actions button{border:0;border-radius:11px;padding:10px 12px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.editor-app-actions button.secondary{background:#eee5dd;color:#5e5048}.editor-app-card{align-self:start}@media(max-width:700px){.editor-app-card{grid-column:1/-1}.editor-app-actions{grid-template-columns:1fr 1fr}.editor-app-actions button:first-child{grid-column:1/-1}.editor-app-guide{font-size:12px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+.editor-app-guide{margin-top:8px;padding:10px 11px;background:#faf4ee;border:1px solid #eadfd7;border-radius:11px;font-size:11px;line-height:1.65;white-space:pre-line;color:#5e5048}.editor-app-actions{display:grid;grid-template-columns:1fr;gap:7px;margin-top:9px}.editor-app-actions button{border:0;border-radius:11px;padding:10px 12px;background:#8b6a57;color:#fff;font-weight:900;font-size:11px;cursor:pointer}.editor-app-actions button.secondary{background:#eee5dd;color:#5e5048}.editor-app-card{align-self:start}@media(max-width:700px){.editor-app-card{grid-column:1/-1}.editor-app-actions{grid-template-columns:1fr 1fr}.editor-app-actions button:first-child{grid-column:1/-1}.editor-app-guide{font-size:12px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -183,8 +183,6 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
       <div class="video-preview" id="videoPreview"><img id="videoPosterFallback" alt="完成動画のプレビュー" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"><video id="completedVideo" controls playsinline webkit-playsinline preload="metadata" style="display:none;width:100%;height:100%;max-height:420px;object-fit:contain;border-radius:12px;background:#111"></video><div id="videoEmpty"><b>完成動画プレビュー</b><span id="previewText">初回動画を作ると、ここにMP4が表示されます</span></div></div><div style="display:flex;gap:8px;margin-top:8px;align-items:center"><a id="videoOpenLink" href="#" target="_blank" rel="noopener" style="display:none;font-size:13px;text-decoration:none">↗ 動画を別画面で開く</a></div>
       <div class="result-actions"><button type="button" onclick="showToast('完成物の確認後、「変更要望」に入力して何度でもブラッシュアップできます')">確認ポイント</button><button type="button" class="secondary" onclick="playNarration()">🔊 ナレーション</button><button type="button" class="secondary" onclick="showToast('公開・投稿は人間承認後のみです')">公開前チェック</button></div>
     </section>
-  </div>
-
   <section class="final-card music-card" id="musicPanel">
     <div class="result-head"><strong>🎵 音楽制作</strong><span class="result-badge" id="musicStatus">未選択</span></div>
     <p style="margin:8px 0;color:#806f65;font-size:12px">動画ごとに音楽方式を選択できます。自動投稿・課金操作は行いません。</p>
@@ -225,6 +223,9 @@ button:disabled{opacity:.55!important;cursor:not-allowed!important}
     </div>
     <p id="editorPackStatus" role="status" aria-live="polite" style="margin-top:7px;font-size:10px">素材パックには編集手順・字幕原稿・タイムライン・権利確認項目をまとめます。専用編集プロジェクトファイルではありません。</p>
   </section>
+  </div>
+
+
   <aside class="final-side">
     <section class="final-card quality-card">
       <h2>✓ 品質監査</h2>
