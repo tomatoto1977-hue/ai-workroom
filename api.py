@@ -21,6 +21,7 @@ app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
 @lru_cache(maxsize=16)
 def _video_font(size: int):
     from PIL import ImageFont
+    from PIL import ImageFont
     # Render環境でも日本語を必ず描画できるよう、同梱IPAexフォント→OSフォントの順で探索。
     candidates = []
     try:
@@ -44,6 +45,7 @@ def _video_font(size: int):
     return ImageFont.load_default()
 
 def _video_card(path: Path, title: str, body: str, step: str):
+    from PIL import Image, ImageDraw
     from PIL import Image, ImageDraw
     # Shorts/TikTokの正本レンダーは1080x1920の縦9:16。
     # 上下のSNS UIに重要情報が被らないよう、中央寄りへ配置する。
@@ -532,6 +534,7 @@ def _video_file_qa(video_path: Path) -> dict[str, Any]:
         report["issues"].append("file_missing")
         return report
     import imageio_ffmpeg
+    import imageio_ffmpeg
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     try:
         p = subprocess.run([ff, "-hide_banner", "-i", str(video_path)], capture_output=True, text=True, timeout=30)
@@ -612,6 +615,7 @@ def _render_video_files(
     for i,(t,b,s) in enumerate(cards):
         _video_card(work/f"{i:02d}.png",t,b,s)
     out=VIDEO_DIR/f"{job}.mp4"
+    import imageio_ffmpeg
     import imageio_ffmpeg
     ff=imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
