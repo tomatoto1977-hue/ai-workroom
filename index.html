@@ -262,7 +262,7 @@ function recordRunMemory(data,instruction){
  saveMemoryEntry({kind:'run',title:'実行記録：'+String(theme&&theme.title||instruction).slice(0,120),status:gate.passed?'ai_audit_passed_human_review_still_required':'review_required',tags:['execution',gate.passed?'audit-pass':'review'],content:'これはAI作業室の生成・監査記録であり、独立検証済みの事実ではありません。\n依頼テーマ：'+instruction+'\n実行モード：'+(data.mode||'unknown')+'\n品質点：'+(gate.score??'不明')+'/100、AI監査合格：'+(gate.passed===true?'はい（人間確認は別途必須）':'いいえ／未確認')+'\n改善回数：'+(gate.improvement_rounds??0)+'\n記憶コンテキスト読込：'+(data.memory_context_loaded?'あり':'なし')+'\n担当メモ：\n'+(snippets||'担当メモなし')});
 }
 function saveCurrentRule(){
- const input=document.getElementById('instruction');const text=String(state.instruction||input?.value||'').trim();
+ const input=document.getElementById('instruction');const text=String(input?.value?.trim()||state.instruction||'').trim();
  if(!text){showToast('保存する指示がありません');return;}
  const ok=saveMemoryEntry({kind:'rule',title:'ユーザー指定ルール：'+text.slice(0,80),status:'user_confirmed',tags:['rule','user-confirmed'],content:text});
  showToast(ok?'学習ルールとして保存しました':'同じ内容が既に保存されています');
@@ -273,7 +273,7 @@ function exportObsidianMemory(){
  const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='AI作業室_継続記憶.md';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Obsidian用Markdownを書き出しました');
 }
 async function importObsidianMemory(file){
- if(!file)return;try{const md=await file.text();const blocks=[...md.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];let added=0;
+ if(!file)return;if(file.size>1000000){showToast('Markdownは1MB以下にしてください');return;}try{const md=await file.text();const blocks=[...md.matchAll(/<!-- AIW_MEMORY_BEGIN -->([\s\S]*?)<!-- AIW_MEMORY_END -->/g)];let added=0;
  for(const match of blocks){const b=match[1];const title=(b.match(/^##\s+(.+)$/m)||[])[1]||'Obsidianからの学習メモ';const get=k=>((b.match(new RegExp('^- '+k+':\\s*(.*)$','m'))||[])[1]||'').trim();const marker=b.indexOf('\n\n');const content=marker>=0?b.slice(marker+2).trim():b.replace(/^##[^\n]*\n/,'').trim();if(!content)continue;const ok=saveMemoryEntry({id:get('id')||undefined,title,kind:get('kind')||'imported',created_at:get('created_at')||new Date().toISOString(),status:get('status')||'unverified',source_url:get('source_url'),tags:get('tags').split(',').map(x=>x.trim()).filter(Boolean),content});if(ok)added++;}
  if(!blocks.length){const title=file.name.replace(/\.md$/i,'');if(saveMemoryEntry({kind:'imported',title,status:'unverified',tags:['obsidian-import'],content:md.slice(0,3000)}))added++;}
  renderMemoryStatus();showToast('Markdown読込完了：新規 '+added+'件');log('継続記憶：Obsidian Markdownから'+added+'件を読込');}catch(e){showToast('Markdown読込に失敗しました');}
