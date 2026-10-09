@@ -45,18 +45,30 @@ def _video_font(size: int):
 
 def _video_card(path: Path, title: str, body: str, step: str):
     from PIL import Image, ImageDraw
-    # Free 512MiB環境でのピークメモリを抑えるため720x1280の縦9:16で作成。
     im=Image.new("RGB",(720,1280),(248,240,232))
     d=ImageDraw.Draw(im)
+    # Soft editorial cover with decorative shapes and clear hierarchy.
+    d.ellipse((505,-70,790,215),fill=(232,211,244))
+    d.ellipse((545,40,690,185),fill=(197,222,201))
     d.rounded_rectangle((35,35,685,1245),radius=34,fill=(255,250,245),outline=(217,185,157),width=3)
-    d.text((70,75),"AI WORKROOM",font=_video_font(34),fill=(76,64,57))
-    d.text((70,156),step,font=_video_font(25),fill=(118,84,217))
-    d.text((70,226),title,font=_video_font(50),fill=(65,55,49))
-    y=337
-    for line in body.split("\n")[:10]:
-        d.text((70,y),line[:31],font=_video_font(29),fill=(92,79,70)); y+=55
+    d.text((70,75),"AI WORKROOM",font=_video_font(30),fill=(76,64,57))
+    d.text((70,156),step,font=_video_font(23),fill=(118,84,217))
+    d.rounded_rectangle((70,205,155,214),radius=5,fill=(118,84,217))
+    title_text = str(title or "")[:28]
+    title_lines = [title_text[i:i+12] for i in range(0,len(title_text),12)] or ["動画のポイント"]
+    y=245
+    for line in title_lines[:2]:
+        d.text((70,y),line,font=_video_font(44),fill=(65,55,49)); y+=58
+    d.rounded_rectangle((70,y+8,650,y+14),radius=3,fill=(232,220,209))
+    y += 48
+    body_text = str(body or "").replace("\\n"," ").replace("\n"," ")
+    body_lines = [body_text[i:i+20] for i in range(0,min(len(body_text),360),20)]
+    for line in body_lines[:9]:
+        d.text((70,y),line,font=_video_font(25),fill=(92,79,70)); y+=44
     d.rounded_rectangle((70,1010,650,1090),radius=18,fill=(139,106,87))
     d.text((92,1035),"HUMAN APPROVAL REQUIRED",font=_video_font(20),fill=(255,255,255))
+    d.text((70,1150),"確認してから公開",font=_video_font(23),fill=(118,84,217))
+    d.text((590,1150),step.split("/")[-1].strip(),font=_video_font(18),fill=(118,84,217))
     im.save(path)
 
 def _narration_text(instruction: str, results: list[dict[str, Any]]) -> str:
