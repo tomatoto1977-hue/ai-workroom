@@ -21,7 +21,6 @@ app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
 @lru_cache(maxsize=16)
 def _video_font(size: int):
     from PIL import ImageFont
-    from PIL import ImageFont
     # Render環境でも日本語を必ず描画できるよう、同梱IPAexフォント→OSフォントの順で探索。
     candidates = []
     try:
@@ -45,7 +44,6 @@ def _video_font(size: int):
     return ImageFont.load_default()
 
 def _video_card(path: Path, title: str, body: str, step: str):
-    from PIL import Image, ImageDraw
     from PIL import Image, ImageDraw
     # Shorts/TikTokの正本レンダーは1080x1920の縦9:16。
     # 上下のSNS UIに重要情報が被らないよう、中央寄りへ配置する。
